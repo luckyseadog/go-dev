@@ -138,6 +138,7 @@ func (a *Agent) PostStats() {
 func (a *Agent) Run() {
 	go a.GetStats()
 	go a.PostStats()
+	<-a.cancel
 }
 
 func (a *Agent) Stop() {
