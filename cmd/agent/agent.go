@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -80,13 +81,14 @@ func (a *Agent) PostStats() {
 			}
 			for key, value := range metricsGauge {
 				address, err := url.Parse(a.ruler.address)
+				data := fmt.Sprintf("%f", value)
 				if err != nil {
 					log.Println(err)
 					return
 				}
 
-				address.Path = path.Join(address.Path, "update", "Gauge", key, fmt.Sprintf("%f", value))
-				req, err := http.NewRequest(http.MethodPost, address.String(), nil)
+				address.Path = path.Join(address.Path, "update", "Gauge", key, data)
+				req, err := http.NewRequest(http.MethodPost, address.String(), strings.NewReader(data))
 				if err != nil {
 					log.Println(err)
 					return
@@ -106,13 +108,14 @@ func (a *Agent) PostStats() {
 			}
 			for key, value := range metricsInt {
 				address, err := url.Parse(a.ruler.address)
+				data := fmt.Sprintf("%d", value)
 				if err != nil {
 					log.Println(err)
 					return
 				}
 
-				address.Path = path.Join(address.Path, "update", "Counter", key, fmt.Sprintf("%d", value))
-				req, err := http.NewRequest(http.MethodPost, address.String(), nil)
+				address.Path = path.Join(address.Path, "update", "Counter", key, data)
+				req, err := http.NewRequest(http.MethodPost, address.String(), strings.NewReader(data))
 				if err != nil {
 					log.Println(err)
 					return
