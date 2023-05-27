@@ -52,7 +52,7 @@ func (a *Agent) GetStats() {
 		case <-a.cancel:
 			return
 		default:
-			_ = <-ticker.C
+			<-ticker.C
 			a.mu.Lock()
 			runtime.ReadMemStats(&a.metrics.memStats)
 			a.metrics.pollCount += 1
