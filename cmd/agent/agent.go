@@ -143,3 +143,9 @@ func (a *Agent) Run() {
 func (a *Agent) Stop() {
 	close(a.cancel)
 }
+
+func main() {
+	agent := NewAgent("http://127.0.0.1:8080", "text/plain", 2*time.Second, 10*time.Second)
+	agent.Run()
+	time.Sleep(5 * time.Minute)
+}
