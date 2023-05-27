@@ -93,7 +93,10 @@ func (a *Agent) PostStats() {
 				}
 				req.Header.Set("Content-Type", a.ruler.contentType)
 				response, err := a.client.Do(req)
-
+				if err != nil {
+					log.Println(err)
+					return
+				}
 				defer response.Body.Close()
 				_, err = io.Copy(io.Discard, response.Body)
 				if err != nil {
@@ -116,6 +119,10 @@ func (a *Agent) PostStats() {
 				}
 				req.Header.Set("Content-Type", a.ruler.contentType)
 				response, err := a.client.Do(req)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 
 				defer response.Body.Close()
 				_, err = io.Copy(io.Discard, response.Body)
