@@ -85,7 +85,7 @@ func (a *Agent) PostStats() {
 					return
 				}
 
-				address.Path = path.Join(address.Path, "update", "Gauge", key, fmt.Sprintf("%f", value))
+				address.Path = path.Join(address.Path, "update", "gauge", key, fmt.Sprintf("%f", value))
 				req, err := http.NewRequest(http.MethodPost, address.String(), nil)
 				if err != nil {
 					log.Println(err)
@@ -111,7 +111,7 @@ func (a *Agent) PostStats() {
 					return
 				}
 
-				address.Path = path.Join(address.Path, "update", "Counter", key, fmt.Sprintf("%d", value))
+				address.Path = path.Join(address.Path, "update", "counter", key, fmt.Sprintf("%d", value))
 				req, err := http.NewRequest(http.MethodPost, address.String(), nil)
 				if err != nil {
 					log.Println(err)
