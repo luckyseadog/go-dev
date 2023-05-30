@@ -24,15 +24,15 @@ type Storage struct {
 func (s *Storage) Store(metric internal.Metric, metricValue any) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	switch metricValue.(type) {
+	switch metricValue := metricValue.(type) {
 	case internal.Gauge:
-		s.DataGauge[metric] = metricValue.(internal.Gauge)
+		s.DataGauge[metric] = metricValue
 		return nil
 	case internal.Counter:
 		if s.DataCounter[metric].Size == s.DataCounter[metric].GetLength() {
 			s.DataCounter[metric].Pop()
 		}
-		s.DataCounter[metric].Push(metricValue.(internal.Counter))
+		s.DataCounter[metric].Push(metricValue)
 		return nil
 	default:
 		return errNotExpectedType

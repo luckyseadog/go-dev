@@ -26,11 +26,11 @@ func TestStorage_Load(t *testing.T) {
 		{
 			name: "LOAD",
 			fields: fields{
-				map[internal.Metric]internal.Gauge{
+				dataGauge: map[internal.Metric]internal.Gauge{
 					"StackSys": 1.0,
 				},
-				map[internal.Metric]*internal.Queue{
-					"Counter": {[]internal.Counter{6}, 1},
+				dataCounter: map[internal.Metric]*internal.Queue{
+					"Counter": {Elements: []internal.Counter{6}, Size: 1},
 				},
 			},
 			args: args{"StackSys"},
@@ -70,14 +70,14 @@ func TestStorage_Store(t *testing.T) {
 		{
 			name: "LOAD",
 			fields: fields{
-				map[internal.Metric]internal.Gauge{
+				dataGauge: map[internal.Metric]internal.Gauge{
 					"StackSys": 1.0,
 				},
-				map[internal.Metric]*internal.Queue{
+				dataCounter: map[internal.Metric]*internal.Queue{
 					"Counter": {[]internal.Counter{6}, 5},
 				},
 			},
-			args: args{"Counter", internal.Counter(6)},
+			args: args{metric: "Counter", metricValue: internal.Counter(6)},
 		},
 	}
 	for _, tt := range tests {

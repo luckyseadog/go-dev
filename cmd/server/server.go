@@ -1,6 +1,9 @@
 package main
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 type Server struct {
 	http.Server
@@ -11,5 +14,5 @@ func NewServer(address string, handler http.Handler) *Server {
 }
 
 func (s *Server) Run() {
-	s.ListenAndServe()
+	log.Fatal(s.ListenAndServe())
 }

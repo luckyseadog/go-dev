@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"github.com/stretchr/testify/assert"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,6 +38,9 @@ func TestHandlerUpdate(t *testing.T) {
 			h(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want, result.StatusCode)
+			defer result.Body.Close()
+			_, err := io.Copy(io.Discard, result.Body)
+			assert.NoError(t, err)
 		})
 	}
 }

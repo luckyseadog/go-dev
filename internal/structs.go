@@ -6,7 +6,7 @@ type Queue struct {
 }
 
 func NewQueue(size Counter) *Queue {
-	return &Queue{Size: size}
+	return &Queue{Elements: []Counter{}, Size: size}
 }
 
 func (q *Queue) IsEmpty() bool {
@@ -17,18 +17,10 @@ func (q *Queue) GetLength() Counter {
 }
 
 func (q *Queue) Push(elem Counter) {
-	if q.GetLength() == q.Size {
-		panic("Overflow")
-		return
-	}
 	q.Elements = append(q.Elements, elem)
 }
 
 func (q *Queue) Pop() Counter {
-	if q.IsEmpty() {
-		panic("Queue is empty")
-		return 0
-	}
 	element := q.Elements[0]
 	if q.GetLength() == 1 {
 		q.Elements = nil
