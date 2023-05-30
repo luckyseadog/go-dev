@@ -22,9 +22,9 @@ type InteractionRules struct {
 }
 
 type Metrics struct {
-	memStats    runtime.MemStats
-	pollCount   int
-	randomValue int
+	MemStats    runtime.MemStats
+	PollCount   internal.Counter
+	RandomValue internal.Counter
 }
 
 type Agent struct {
@@ -42,7 +42,8 @@ func NewAgent(address string, contentType string, pollInterval time.Duration, re
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
 	}
-	return &Agent{client: http.Client{}, ruler: interactionRules}
+	cancel := make(chan struct{})
+	return &Agent{client: http.Client{}, ruler: interactionRules, cancel: cancel}
 }
 
 func (a *Agent) GetStats() {
@@ -54,9 +55,9 @@ func (a *Agent) GetStats() {
 		default:
 			<-ticker.C
 			a.mu.Lock()
-			runtime.ReadMemStats(&a.metrics.memStats)
-			a.metrics.pollCount += 1
-			a.metrics.randomValue = rand.Intn(100)
+			runtime.ReadMemStats(&a.metrics.MemStats)
+			a.metrics.PollCount += 1
+			a.metrics.RandomValue = internal.Counter(rand.Intn(100))
 			a.mu.Unlock()
 		}
 	}
@@ -72,11 +73,11 @@ func (a *Agent) PostStats() {
 		default:
 			<-ticker.C
 			a.mu.Lock()
-			metricsGauge := internal.GetMetrics(a.metrics.memStats)
+			metricsGauge := internal.GetMetrics(a.metrics.MemStats)
 			a.mu.Unlock()
-			metricsInt := map[string]internal.Counter{
-				"PollCount":   internal.Counter(a.metrics.pollCount),
-				"RandomValue": internal.Counter(a.metrics.randomValue),
+			metricsInt := map[internal.Metric]internal.Counter{
+				internal.PollCount:   a.metrics.PollCount,
+				internal.RandomValue: a.metrics.RandomValue,
 			}
 			for key, value := range metricsGauge {
 				address, err := url.Parse(a.ruler.address)
@@ -85,7 +86,7 @@ func (a *Agent) PostStats() {
 					return
 				}
 
-				address.Path = path.Join(address.Path, "update", "gauge", key, fmt.Sprintf("%f", value))
+				address.Path = path.Join(address.Path, "update", "gauge", string(key), fmt.Sprintf("%f", value))
 				req, err := http.NewRequest(http.MethodPost, address.String(), nil)
 				if err != nil {
 					log.Println(err)
@@ -111,7 +112,7 @@ func (a *Agent) PostStats() {
 					return
 				}
 
-				address.Path = path.Join(address.Path, "update", "counter", key, fmt.Sprintf("%d", value))
+				address.Path = path.Join(address.Path, "update", "counter", string(key), fmt.Sprintf("%d", value))
 				req, err := http.NewRequest(http.MethodPost, address.String(), nil)
 				if err != nil {
 					log.Println(err)
@@ -138,6 +139,7 @@ func (a *Agent) PostStats() {
 func (a *Agent) Run() {
 	go a.GetStats()
 	go a.PostStats()
+	<-a.cancel
 }
 
 func (a *Agent) Stop() {

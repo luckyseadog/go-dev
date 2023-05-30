@@ -3,6 +3,7 @@ package pkg
 import (
 	"encoding/json"
 	"github.com/luckyseadog/go-dev/internal"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
+	log.Println(StorageVar)
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return

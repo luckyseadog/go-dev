@@ -3,9 +3,10 @@ package pkg
 import (
 	"errors"
 	"github.com/luckyseadog/go-dev/internal"
+	"sync"
 )
 
-var errNotExpectedType error = errors.New("not expected type")
+var errNotExpectedType = errors.New("not expected type")
 
 var StorageVar = NewStorage(100)
 
@@ -17,9 +18,12 @@ type StorageInterface interface {
 type Storage struct {
 	DataGauge   map[internal.Metric]internal.Gauge
 	DataCounter map[internal.Metric]*internal.Queue
+	mu          sync.Mutex
 }
 
 func (s *Storage) Store(metric internal.Metric, metricValue any) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	switch metricValue.(type) {
 	case internal.Gauge:
 		s.DataGauge[metric] = metricValue.(internal.Gauge)
@@ -36,6 +40,8 @@ func (s *Storage) Store(metric internal.Metric, metricValue any) error {
 }
 
 func (s *Storage) Load(metric internal.Metric) (any, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	valueGauge, ok := s.DataGauge[metric]
 	if ok {
 		return valueGauge, nil
@@ -51,5 +57,5 @@ func NewStorage(size internal.Counter) StorageInterface {
 	dataCounter := map[internal.Metric]*internal.Queue{}
 	dataCounter[internal.RandomValue] = internal.NewQueue(size)
 	dataCounter[internal.PollCount] = internal.NewQueue(size)
-	return &Storage{dataGauge, dataCounter}
+	return &Storage{dataGauge, dataCounter, sync.Mutex{}}
 }
