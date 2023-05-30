@@ -74,7 +74,7 @@ func TestStorage_Store(t *testing.T) {
 					"StackSys": 1.0,
 				},
 				dataCounter: map[internal.Metric]*internal.Queue{
-					"Counter": {[]internal.Counter{6}, 5},
+					"Counter": {Elements: []internal.Counter{6}, Size: 5},
 				},
 			},
 			args: args{metric: "Counter", metricValue: internal.Counter(6)},
