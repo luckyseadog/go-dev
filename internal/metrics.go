@@ -6,6 +6,40 @@ type Gauge float64
 
 type Counter int64
 
+type Metric string
+
+const (
+	RandomValue   = Metric("RandomValue")
+	PollCount     = Metric("PollCount")
+	Alloc         = Metric("Alloc")
+	BuckHashSys   = Metric("BuckHashSys")
+	Frees         = Metric("Frees")
+	GCCPUFraction = Metric("GCCPUFraction")
+	GCSys         = Metric("GCSys")
+	HeapAlloc     = Metric("HeapAlloc")
+	HeapIdle      = Metric("HeapIdle")
+	HeapInuse     = Metric("HeapInuse")
+	HeapObjects   = Metric("HeapObjects")
+	HeapReleased  = Metric("HeapReleased")
+	HeapSys       = Metric("HeapSys")
+	LastGC        = Metric("LastGC")
+	Lookups       = Metric("Lookups")
+	MCacheInuse   = Metric("MCacheInuse")
+	MCacheSys     = Metric("MCacheSys")
+	MSpanInuse    = Metric("MSpanInuse")
+	MSpanSys      = Metric("MSpanSys")
+	Mallocs       = Metric("Mallocs")
+	NextGC        = Metric("NextGC")
+	NumForcedGC   = Metric("NumForcedGC")
+	NumGC         = Metric("NumGC")
+	OtherSys      = Metric("OtherSys")
+	PauseTotalNs  = Metric("PauseTotalNs")
+	StackInuse    = Metric("StackInuse")
+	StackSys      = Metric("StackSys")
+	Sys           = Metric("Sys")
+	TotalAlloc    = Metric("TotalAlloc")
+)
+
 func GetMetrics(memStats runtime.MemStats) map[string]Gauge {
 	metricsMap := map[string]Gauge{
 		"Alloc":         Gauge(memStats.Alloc),
