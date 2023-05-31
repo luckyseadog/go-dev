@@ -4,13 +4,14 @@ import (
 	"github.com/luckyseadog/go-dev/internal"
 	"github.com/stretchr/testify/require"
 	"reflect"
+	"sync"
 	"testing"
 )
 
 func TestStorage_Load(t *testing.T) {
 	type fields struct {
 		dataGauge   map[internal.Metric]internal.Gauge
-		dataCounter map[internal.Metric]*internal.Queue
+		dataCounter map[internal.Metric][]internal.Counter
 	}
 	type args struct {
 		metric internal.Metric
@@ -29,8 +30,8 @@ func TestStorage_Load(t *testing.T) {
 				dataGauge: map[internal.Metric]internal.Gauge{
 					"StackSys": 1.0,
 				},
-				dataCounter: map[internal.Metric]*internal.Queue{
-					"Counter": {Elements: []internal.Counter{6}, Size: 1},
+				dataCounter: map[internal.Metric][]internal.Counter{
+					"RandomValue": {1, 2, 3},
 				},
 			},
 			args: args{"StackSys"},
@@ -55,7 +56,7 @@ func TestStorage_Load(t *testing.T) {
 func TestStorage_Store(t *testing.T) {
 	type fields struct {
 		dataGauge   map[internal.Metric]internal.Gauge
-		dataCounter map[internal.Metric]*internal.Queue
+		dataCounter map[internal.Metric][]internal.Counter
 	}
 	type args struct {
 		metric      internal.Metric
@@ -68,16 +69,16 @@ func TestStorage_Store(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "LOAD",
+			name: "STORE",
 			fields: fields{
 				dataGauge: map[internal.Metric]internal.Gauge{
 					"StackSys": 1.0,
 				},
-				dataCounter: map[internal.Metric]*internal.Queue{
-					"Counter": {Elements: []internal.Counter{6}, Size: 5},
+				dataCounter: map[internal.Metric][]internal.Counter{
+					"RandomValue": {1, 2, 3},
 				},
 			},
-			args: args{metric: "Counter", metricValue: internal.Counter(6)},
+			args: args{metric: "RandomValue", metricValue: internal.Counter(6)},
 		},
 	}
 	for _, tt := range tests {
@@ -85,17 +86,19 @@ func TestStorage_Store(t *testing.T) {
 			s := &Storage{
 				DataGauge:   tt.fields.dataGauge,
 				DataCounter: tt.fields.dataCounter,
+				Size:        7,
+				mu:          sync.Mutex{},
 			}
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, s.DataCounter["Counter"].GetLength(), internal.Counter(2))
+			require.Equal(t, len(s.DataCounter["RandomValue"]), 4)
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, s.DataCounter["Counter"].GetLength(), internal.Counter(3))
+			require.Equal(t, len(s.DataCounter["RandomValue"]), 5)
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, s.DataCounter["Counter"].GetLength(), internal.Counter(4))
+			require.Equal(t, len(s.DataCounter["RandomValue"]), 6)
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, s.DataCounter["Counter"].GetLength(), internal.Counter(5))
+			require.Equal(t, len(s.DataCounter["RandomValue"]), 7)
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, s.DataCounter["Counter"].GetLength(), internal.Counter(5))
+			require.Equal(t, len(s.DataCounter["RandomValue"]), 7)
 		})
 	}
 }

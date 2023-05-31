@@ -10,7 +10,7 @@ import (
 )
 
 func HandlerDefault(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("This is a server for updating metrics."))
+	http.Error(w, "only update-like path is valid", http.StatusNotFound)
 }
 
 func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
@@ -28,18 +28,19 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 	if metricType == "gauge" {
 		metricValue, err := strconv.ParseFloat(metricValueString, 64)
 		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
+			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
 		err = StorageVar.Store(metric, internal.Gauge(metricValue))
 		if err != nil {
-			http.Error(w, "", http.StatusBadRequest)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
 		jsonData, err := json.Marshal(StorageVar)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -47,18 +48,18 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 		_, err = w.Write(jsonData)
 
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 	} else if metricType == "counter" {
 		metricValue, err := strconv.Atoi(metricValueString)
 		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
+			http.Error(w, "", http.StatusBadRequest)
 		}
 
 		err = StorageVar.Store(metric, internal.Counter(metricValue))
 		if err != nil {
-			http.Error(w, "", http.StatusBadRequest)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
@@ -72,11 +73,11 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 		_, err = w.Write(jsonData)
 
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
 	} else {
-		http.Error(w, "", http.StatusNotFound)
+		http.Error(w, "", http.StatusNotImplemented)
 	}
 }

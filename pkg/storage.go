@@ -17,7 +17,8 @@ type StorageInterface interface {
 
 type Storage struct {
 	DataGauge   map[internal.Metric]internal.Gauge
-	DataCounter map[internal.Metric]*internal.Queue
+	DataCounter map[internal.Metric][]internal.Counter
+	Size        int
 	mu          sync.Mutex
 }
 
@@ -29,10 +30,10 @@ func (s *Storage) Store(metric internal.Metric, metricValue any) error {
 		s.DataGauge[metric] = metricValue
 		return nil
 	case internal.Counter:
-		if s.DataCounter[metric].Size == s.DataCounter[metric].GetLength() {
-			s.DataCounter[metric].Pop()
+		if len(s.DataCounter[metric]) == s.Size {
+			s.DataCounter[metric] = s.DataCounter[metric][1:]
 		}
-		s.DataCounter[metric].Push(metricValue)
+		s.DataCounter[metric] = append(s.DataCounter[metric], metricValue)
 		return nil
 	default:
 		return errNotExpectedType
@@ -52,10 +53,8 @@ func (s *Storage) Load(metric internal.Metric) (any, error) {
 	}
 }
 
-func NewStorage(size internal.Counter) StorageInterface {
+func NewStorage(size int) StorageInterface {
 	dataGauge := map[internal.Metric]internal.Gauge{}
-	dataCounter := map[internal.Metric]*internal.Queue{}
-	dataCounter[internal.RandomValue] = internal.NewQueue(size)
-	dataCounter[internal.PollCount] = internal.NewQueue(size)
-	return &Storage{dataGauge, dataCounter, sync.Mutex{}}
+	dataCounter := map[internal.Metric][]internal.Counter{}
+	return &Storage{DataGauge: dataGauge, DataCounter: dataCounter, Size: size, mu: sync.Mutex{}}
 }
