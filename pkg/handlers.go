@@ -21,6 +21,10 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	splitPath := strings.Split(r.URL.Path, "/")
+	if len(splitPath) != 5 {
+		http.Error(w, "", http.StatusNotFound)
+		return
+	}
 
 	metricType, metric, metricValueString := splitPath[len(splitPath)-3],
 		internal.Metric(splitPath[len(splitPath)-2]), splitPath[len(splitPath)-1]
@@ -79,5 +83,6 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		http.Error(w, "", http.StatusNotImplemented)
+		return
 	}
 }

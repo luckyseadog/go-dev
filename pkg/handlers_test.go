@@ -22,7 +22,7 @@ func TestHandlerUpdate(t *testing.T) {
 		{
 			name:    "simple test #2",
 			want:    http.StatusNotImplemented,
-			request: "http://127.0.0.1:8080/update/hh/Alloc/1.0",
+			request: "http://127.0.0.1:8080/update/unknown/Alloc/1.0",
 		},
 		{
 			name:    "simple test #3",
@@ -43,6 +43,11 @@ func TestHandlerUpdate(t *testing.T) {
 			name:    "simple test #5",
 			want:    http.StatusNotFound,
 			request: "http://127.0.0.1:8080/updater/counter/testCounter/1",
+		},
+		{
+			name:    "simple test #6",
+			want:    http.StatusNotFound,
+			request: "http://127.0.0.1:8080/update/gauge/",
 		},
 	}
 	for _, tt := range tests {
