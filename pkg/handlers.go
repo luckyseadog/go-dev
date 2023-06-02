@@ -17,11 +17,23 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	_, err := fmt.Fprintf(w, "<html><body>")
+	if err != nil {
+		http.Error(w, "error when writing to html", http.StatusInternalServerError)
+		return
+	}
 	for key := range StorageVar.DataGauge {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
+		if err != nil {
+			http.Error(w, "error when writing to html", http.StatusInternalServerError)
+			return
+		}
 	}
 	for key := range StorageVar.DataCounter {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
+		if err != nil {
+			http.Error(w, "error when writing to html", http.StatusInternalServerError)
+			return
+		}
 	}
 	_, err = fmt.Fprintf(w, "</body></html>")
 	if err != nil {

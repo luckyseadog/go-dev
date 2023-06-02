@@ -8,57 +8,57 @@ import (
 	"testing"
 )
 
-//func TestHandlerDefault(t *testing.T) {
-//	tests := []struct {
-//		name    string
-//		request string
-//		want    string
-//	}{
-//		{
-//			name:    "test #1",
-//			request: "/update/gauge/a/1.0",
-//			want:    "<html><body><p>a</p></body></html>",
-//		},
-//		{
-//			name:    "test #2",
-//			request: "/update/gauge/b/1.0",
-//			want:    "<html><body><p>a</p><p>b</p></body></html>",
-//		},
-//		{
-//			name:    "test #3",
-//			request: "/update/counter/c/1",
-//			want:    "<html><body><p>a</p><p>b</p><p>c</p></body></html>",
-//		},
-//	}
-//	mux := http.NewServeMux()
-//	mux.Handle("/", http.HandlerFunc(HandlerDefault))
-//	mux.Handle("/value/", http.HandlerFunc(HandlerGet))
-//	mux.Handle("/update/", http.HandlerFunc(HandlerUpdate))
-//	ts := httptest.NewServer(mux)
-//	client := ts.Client()
-//	defer ts.Close()
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			request := httptest.NewRequest(http.MethodPost, ts.URL+tt.request, nil)
-//			//client := ts.Client()
-//			res, err := client.Do(request)
-//			assert.NoError(t, err)
-//			assert.Equal(t, http.StatusOK, res.StatusCode)
-//			defer res.Body.Close()
-//			_, err = io.Copy(io.Discard, res.Body)
-//			assert.NoError(t, err)
-//
-//			request = httptest.NewRequest(http.MethodGet, ts.URL, nil)
-//			res, err = client.Do(request)
-//			assert.NoError(t, err)
-//			assert.Equal(t, http.StatusOK, res.StatusCode)
-//			body, err := io.ReadAll(res.Body)
-//			assert.NoError(t, err)
-//			assert.Equal(t, tt.want, body)
-//		})
-//	}
-//}
+func TestHandlerDefault(t *testing.T) {
+	tests := []struct {
+		name    string
+		request string
+		want    string
+	}{
+		{
+			name:    "test #1",
+			request: "/update/gauge/a/1.0",
+			want:    "<html><body><p>a</p></body></html>",
+		},
+		{
+			name:    "test #2",
+			request: "/update/gauge/b/1.0",
+			want:    "<html><body><p>a</p><p>b</p></body></html>",
+		},
+		{
+			name:    "test #3",
+			request: "/update/counter/c/1",
+			want:    "<html><body><p>a</p><p>b</p><p>c</p></body></html>",
+		},
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/", http.HandlerFunc(HandlerDefault))
+	mux.Handle("/value/", http.HandlerFunc(HandlerGet))
+	mux.Handle("/update/", http.HandlerFunc(HandlerUpdate))
+	ts := httptest.NewServer(mux)
+	client := ts.Client()
+	defer ts.Close()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, ts.URL+tt.request, nil)
+			//client := ts.Client()
+			res, err := client.Do(request)
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusOK, res.StatusCode)
+			defer res.Body.Close()
+			_, err = io.Copy(io.Discard, res.Body)
+			assert.NoError(t, err)
+
+			request = httptest.NewRequest(http.MethodGet, ts.URL, nil)
+			res, err = client.Do(request)
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusOK, res.StatusCode)
+			body, err := io.ReadAll(res.Body)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, body)
+		})
+	}
+}
 
 func TestHandlerUpdate(t *testing.T) {
 	tests := []struct {
