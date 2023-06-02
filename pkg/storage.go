@@ -53,7 +53,7 @@ func (s *Storage) Load(metric internal.Metric) (any, error) {
 	}
 }
 
-func NewStorage(size int) StorageInterface {
+func NewStorage(size int) *Storage {
 	dataGauge := map[internal.Metric]internal.Gauge{}
 	dataCounter := map[internal.Metric][]internal.Counter{}
 	return &Storage{DataGauge: dataGauge, DataCounter: dataCounter, Size: size, mu: sync.Mutex{}}
