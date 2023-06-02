@@ -8,7 +8,7 @@ import (
 
 var errNotExpectedType = errors.New("not expected type")
 
-var StorageVar = NewStorage(100)
+var StorageVar = NewStorage()
 
 type StorageInterface interface {
 	Store(metric internal.Metric, metricValue any) error
@@ -17,8 +17,7 @@ type StorageInterface interface {
 
 type Storage struct {
 	DataGauge   map[internal.Metric]internal.Gauge
-	DataCounter map[internal.Metric][]internal.Counter
-	Size        int
+	DataCounter map[internal.Metric]internal.Counter
 	mu          sync.Mutex
 }
 
@@ -30,10 +29,7 @@ func (s *Storage) Store(metric internal.Metric, metricValue any) error {
 		s.DataGauge[metric] = metricValue
 		return nil
 	case internal.Counter:
-		if len(s.DataCounter[metric]) == s.Size {
-			s.DataCounter[metric] = s.DataCounter[metric][1:]
-		}
-		s.DataCounter[metric] = append(s.DataCounter[metric], metricValue)
+		s.DataCounter[metric] += metricValue
 		return nil
 	default:
 		return errNotExpectedType
@@ -53,8 +49,8 @@ func (s *Storage) Load(metric internal.Metric) (any, error) {
 	}
 }
 
-func NewStorage(size int) *Storage {
+func NewStorage() *Storage {
 	dataGauge := map[internal.Metric]internal.Gauge{}
-	dataCounter := map[internal.Metric][]internal.Counter{}
-	return &Storage{DataGauge: dataGauge, DataCounter: dataCounter, Size: size, mu: sync.Mutex{}}
+	dataCounter := map[internal.Metric]internal.Counter{}
+	return &Storage{DataGauge: dataGauge, DataCounter: dataCounter, mu: sync.Mutex{}}
 }

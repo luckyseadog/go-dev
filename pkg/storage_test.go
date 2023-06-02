@@ -11,7 +11,7 @@ import (
 func TestStorage_Load(t *testing.T) {
 	type fields struct {
 		dataGauge   map[internal.Metric]internal.Gauge
-		dataCounter map[internal.Metric][]internal.Counter
+		dataCounter map[internal.Metric]internal.Counter
 	}
 	type args struct {
 		metric internal.Metric
@@ -30,8 +30,8 @@ func TestStorage_Load(t *testing.T) {
 				dataGauge: map[internal.Metric]internal.Gauge{
 					"StackSys": 1.0,
 				},
-				dataCounter: map[internal.Metric][]internal.Counter{
-					"RandomValue": {1, 2, 3},
+				dataCounter: map[internal.Metric]internal.Counter{
+					"RandomValue": 1,
 				},
 			},
 			args: args{"StackSys"},
@@ -56,7 +56,7 @@ func TestStorage_Load(t *testing.T) {
 func TestStorage_Store(t *testing.T) {
 	type fields struct {
 		dataGauge   map[internal.Metric]internal.Gauge
-		dataCounter map[internal.Metric][]internal.Counter
+		dataCounter map[internal.Metric]internal.Counter
 	}
 	type args struct {
 		metric      internal.Metric
@@ -74,8 +74,8 @@ func TestStorage_Store(t *testing.T) {
 				dataGauge: map[internal.Metric]internal.Gauge{
 					"StackSys": 1.0,
 				},
-				dataCounter: map[internal.Metric][]internal.Counter{
-					"RandomValue": {1, 2, 3},
+				dataCounter: map[internal.Metric]internal.Counter{
+					"RandomValue": 1,
 				},
 			},
 			args: args{metric: "RandomValue", metricValue: internal.Counter(6)},
@@ -86,19 +86,14 @@ func TestStorage_Store(t *testing.T) {
 			s := &Storage{
 				DataGauge:   tt.fields.dataGauge,
 				DataCounter: tt.fields.dataCounter,
-				Size:        7,
 				mu:          sync.Mutex{},
 			}
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, len(s.DataCounter["RandomValue"]), 4)
+			require.Equal(t, s.DataCounter["RandomValue"], internal.Counter(7))
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, len(s.DataCounter["RandomValue"]), 5)
+			require.Equal(t, s.DataCounter["RandomValue"], internal.Counter(13))
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, len(s.DataCounter["RandomValue"]), 6)
-			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, len(s.DataCounter["RandomValue"]), 7)
-			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, len(s.DataCounter["RandomValue"]), 7)
+			require.Equal(t, s.DataCounter["RandomValue"], internal.Counter(19))
 		})
 	}
 }

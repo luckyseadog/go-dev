@@ -68,24 +68,23 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(fmt.Sprintf("%f", valueGauge)))
+		_, err = w.Write([]byte(fmt.Sprintf("%.3f", valueGauge)))
 		if err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
 	} else if metricType == "counter" {
-		valueList, err := StorageVar.Load(internal.Metric(metricName))
+		value, err := StorageVar.Load(internal.Metric(metricName))
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		valueListCounter, ok := valueList.([]internal.Counter)
+		valueCounter, ok := value.(internal.Counter)
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		valueCounter := valueListCounter[len(valueListCounter)-1]
 
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write([]byte(fmt.Sprintf("%d", valueCounter)))
