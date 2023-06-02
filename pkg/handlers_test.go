@@ -1,8 +1,10 @@
 package pkg
 
 import (
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,32 +32,31 @@ func TestHandlerDefault(t *testing.T) {
 			want:    "<html><body><p>a</p><p>b</p><p>c</p></body></html>",
 		},
 	}
-	mux := http.NewServeMux()
-	mux.Handle("/", http.HandlerFunc(HandlerDefault))
-	mux.Handle("/value/", http.HandlerFunc(HandlerGet))
-	mux.Handle("/update/", http.HandlerFunc(HandlerUpdate))
-	ts := httptest.NewServer(mux)
-	client := ts.Client()
+	r := chi.NewRouter()
+	r.Get("/", HandlerDefault)
+	r.Get("/value/*", HandlerGet)
+	r.Post("/update/*", HandlerUpdate)
+	ts := httptest.NewServer(r)
 	defer ts.Close()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, ts.URL+tt.request, nil)
-			//client := ts.Client()
-			res, err := client.Do(request)
+			response, err := http.Post(ts.URL+tt.request, "text/plain", nil)
 			assert.NoError(t, err)
-			assert.Equal(t, http.StatusOK, res.StatusCode)
-			defer res.Body.Close()
-			_, err = io.Copy(io.Discard, res.Body)
+			defer response.Body.Close()
+
+			assert.Equal(t, http.StatusOK, response.StatusCode)
+			_, err = io.Copy(io.Discard, response.Body)
 			assert.NoError(t, err)
 
-			request = httptest.NewRequest(http.MethodGet, ts.URL, nil)
-			res, err = client.Do(request)
+			log.Println(ts.URL)
+			response, err = http.Get(ts.URL)
 			assert.NoError(t, err)
-			assert.Equal(t, http.StatusOK, res.StatusCode)
-			body, err := io.ReadAll(res.Body)
+			assert.Equal(t, http.StatusOK, response.StatusCode)
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.want, body)
+			assert.Equal(t, tt.want, string(body))
 		})
 	}
 }
@@ -102,14 +103,16 @@ func TestHandlerUpdate(t *testing.T) {
 			request: "http://127.0.0.1:8080/update/gauge/",
 		},
 	}
+	r := chi.NewRouter()
+	r.Get("/", HandlerDefault)
+	r.Get("/value/*", HandlerGet)
+	r.Post("/update/*", HandlerUpdate)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
-			mux := http.NewServeMux()
-			mux.Handle("/", http.HandlerFunc(HandlerDefault))
-			mux.Handle("/update/", http.HandlerFunc(HandlerUpdate))
-			h := http.HandlerFunc(mux.ServeHTTP)
+			h := http.HandlerFunc(r.ServeHTTP)
 			h(w, request)
 			result := w.Result()
 			assert.Equal(t, tt.want, result.StatusCode)

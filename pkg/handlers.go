@@ -98,6 +98,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
+	//log.Println(StorageVar)
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
