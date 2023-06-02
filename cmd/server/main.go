@@ -14,7 +14,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", pkg.HandlerDefault)
-	r.Get("/update/*", pkg.HandlerUpdate)
+	r.Post("/update/*", pkg.HandlerUpdate)
 
 	server := NewServer("127.0.0.1:8080", r)
 	server.Run()
