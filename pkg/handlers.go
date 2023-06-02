@@ -68,7 +68,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(fmt.Sprintf("%.3f", valueGauge)))
+		_, err = w.Write([]byte(fmt.Sprintf("%g", valueGauge)))
 		if err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
