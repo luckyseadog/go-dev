@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/luckyseadog/go-dev/internal"
 	"io"
@@ -87,7 +88,8 @@ func (a *Agent) PostStats() {
 				}
 
 				address.Path = path.Join(address.Path, "update", "gauge", string(key), fmt.Sprintf("%f", value))
-				req, err := http.NewRequest(http.MethodPost, address.String(), nil)
+				ctx := context.Background()
+				req, err := http.NewRequestWithContext(ctx, http.MethodPost, address.String(), nil)
 				if err != nil {
 					log.Println(err)
 					return

@@ -20,7 +20,7 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 
 	splitPath := strings.Split(r.URL.Path, "/")
 	if len(splitPath) != 5 {
-		http.Error(w, "", http.StatusNotFound)
+		http.Error(w, "invalid update", http.StatusNotFound)
 		return
 	}
 
