@@ -1,8 +1,8 @@
-package pkg
+package storage
 
 import (
 	"errors"
-	"github.com/luckyseadog/go-dev/internal"
+	"github.com/luckyseadog/go-dev/internal/metrics"
 	"sync"
 )
 
@@ -11,24 +11,24 @@ var errNotExpectedType = errors.New("not expected type")
 var StorageVar = NewStorage()
 
 type StorageInterface interface {
-	Store(metric internal.Metric, metricValue any) error
-	Load(metric internal.Metric) (any, error)
+	Store(metric metrics.Metric, metricValue any) error
+	Load(metric metrics.Metric) (any, error)
 }
 
 type Storage struct {
-	DataGauge   map[internal.Metric]internal.Gauge
-	DataCounter map[internal.Metric]internal.Counter
+	DataGauge   map[metrics.Metric]metrics.Gauge
+	DataCounter map[metrics.Metric]metrics.Counter
 	mu          sync.Mutex
 }
 
-func (s *Storage) Store(metric internal.Metric, metricValue any) error {
+func (s *Storage) Store(metric metrics.Metric, metricValue any) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	switch metricValue := metricValue.(type) {
-	case internal.Gauge:
+	case metrics.Gauge:
 		s.DataGauge[metric] = metricValue
 		return nil
-	case internal.Counter:
+	case metrics.Counter:
 		s.DataCounter[metric] += metricValue
 		return nil
 	default:
@@ -36,7 +36,7 @@ func (s *Storage) Store(metric internal.Metric, metricValue any) error {
 	}
 }
 
-func (s *Storage) Load(metric internal.Metric) (any, error) {
+func (s *Storage) Load(metric metrics.Metric) (any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	valueGauge, ok := s.DataGauge[metric]
@@ -50,7 +50,7 @@ func (s *Storage) Load(metric internal.Metric) (any, error) {
 }
 
 func NewStorage() *Storage {
-	dataGauge := map[internal.Metric]internal.Gauge{}
-	dataCounter := map[internal.Metric]internal.Counter{}
+	dataGauge := map[metrics.Metric]metrics.Gauge{}
+	dataCounter := map[metrics.Metric]metrics.Counter{}
 	return &Storage{DataGauge: dataGauge, DataCounter: dataCounter, mu: sync.Mutex{}}
 }

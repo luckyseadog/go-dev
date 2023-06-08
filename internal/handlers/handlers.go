@@ -1,9 +1,10 @@
-package pkg
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal"
+	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/storage"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,14 +22,14 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error when writing to html", http.StatusInternalServerError)
 		return
 	}
-	for key := range StorageVar.DataGauge {
+	for key := range storage.StorageVar.DataGauge {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "error when writing to html", http.StatusInternalServerError)
 			return
 		}
 	}
-	for key := range StorageVar.DataCounter {
+	for key := range storage.StorageVar.DataCounter {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "error when writing to html", http.StatusInternalServerError)
@@ -56,12 +57,12 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 	metricType, metricName := splitPath[len(splitPath)-2], splitPath[len(splitPath)-1]
 
 	if metricType == "gauge" {
-		value, err := StorageVar.Load(internal.Metric(metricName))
+		value, err := storage.StorageVar.Load(metrics.Metric(metricName))
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		valueGauge, ok := value.(internal.Gauge)
+		valueGauge, ok := value.(metrics.Gauge)
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -75,12 +76,12 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else if metricType == "counter" {
-		value, err := StorageVar.Load(internal.Metric(metricName))
+		value, err := storage.StorageVar.Load(metrics.Metric(metricName))
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		valueCounter, ok := value.(internal.Counter)
+		valueCounter, ok := value.(metrics.Counter)
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -110,7 +111,7 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	metricType, metric, metricValueString := splitPath[len(splitPath)-3],
-		internal.Metric(splitPath[len(splitPath)-2]), splitPath[len(splitPath)-1]
+		metrics.Metric(splitPath[len(splitPath)-2]), splitPath[len(splitPath)-1]
 
 	if metricType == "gauge" {
 		metricValue, err := strconv.ParseFloat(metricValueString, 64)
@@ -118,13 +119,13 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
-		err = StorageVar.Store(metric, internal.Gauge(metricValue))
+		err = storage.StorageVar.Store(metric, metrics.Gauge(metricValue))
 		if err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
-		jsonData, err := json.Marshal(StorageVar)
+		jsonData, err := json.Marshal(storage.StorageVar)
 		if err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
@@ -144,13 +145,13 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "", http.StatusBadRequest)
 		}
 
-		err = StorageVar.Store(metric, internal.Counter(metricValue))
+		err = storage.StorageVar.Store(metric, metrics.Counter(metricValue))
 		if err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
-		jsonData, err := json.Marshal(StorageVar)
+		jsonData, err := json.Marshal(storage.StorageVar)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}

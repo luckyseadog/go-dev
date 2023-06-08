@@ -1,9 +1,9 @@
-package main
+package agent
 
 import (
 	"context"
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal"
+	"github.com/luckyseadog/go-dev/internal/metrics"
 	"io"
 	"log"
 	"math/rand"
@@ -24,8 +24,8 @@ type InteractionRules struct {
 
 type Metrics struct {
 	MemStats    runtime.MemStats
-	PollCount   internal.Counter
-	RandomValue internal.Counter
+	PollCount   metrics.Counter
+	RandomValue metrics.Counter
 }
 
 type Agent struct {
@@ -58,7 +58,7 @@ func (a *Agent) GetStats() {
 			a.mu.Lock()
 			runtime.ReadMemStats(&a.metrics.MemStats)
 			a.metrics.PollCount += 1
-			a.metrics.RandomValue = internal.Counter(rand.Intn(100))
+			a.metrics.RandomValue = metrics.Counter(rand.Intn(100))
 			a.mu.Unlock()
 		}
 	}
@@ -74,11 +74,11 @@ func (a *Agent) PostStats() {
 		default:
 			<-ticker.C
 			a.mu.Lock()
-			metricsGauge := internal.GetMetrics(a.metrics.MemStats)
+			metricsGauge := metrics.GetMetrics(a.metrics.MemStats)
 			a.mu.Unlock()
-			metricsInt := map[internal.Metric]internal.Counter{
-				internal.PollCount:   a.metrics.PollCount,
-				internal.RandomValue: a.metrics.RandomValue,
+			metricsInt := map[metrics.Metric]metrics.Counter{
+				metrics.PollCount:   a.metrics.PollCount,
+				metrics.RandomValue: a.metrics.RandomValue,
 			}
 			for key, value := range metricsGauge {
 				address, err := url.Parse(a.ruler.address)

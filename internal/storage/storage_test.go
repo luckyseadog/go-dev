@@ -1,20 +1,21 @@
-package pkg
+package storage
 
 import (
-	"github.com/luckyseadog/go-dev/internal"
-	"github.com/stretchr/testify/require"
+	"github.com/luckyseadog/go-dev/internal/metrics"
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestStorage_Load(t *testing.T) {
 	type fields struct {
-		dataGauge   map[internal.Metric]internal.Gauge
-		dataCounter map[internal.Metric]internal.Counter
+		dataGauge   map[metrics.Metric]metrics.Gauge
+		dataCounter map[metrics.Metric]metrics.Counter
 	}
 	type args struct {
-		metric internal.Metric
+		metric metrics.Metric
 	}
 
 	tests := []struct {
@@ -27,15 +28,15 @@ func TestStorage_Load(t *testing.T) {
 		{
 			name: "LOAD",
 			fields: fields{
-				dataGauge: map[internal.Metric]internal.Gauge{
+				dataGauge: map[metrics.Metric]metrics.Gauge{
 					"StackSys": 1.0,
 				},
-				dataCounter: map[internal.Metric]internal.Counter{
+				dataCounter: map[metrics.Metric]metrics.Counter{
 					"RandomValue": 1,
 				},
 			},
 			args: args{"StackSys"},
-			want: internal.Gauge(1.0),
+			want: metrics.Gauge(1.0),
 		},
 	}
 	for _, tt := range tests {
@@ -55,11 +56,11 @@ func TestStorage_Load(t *testing.T) {
 
 func TestStorage_Store(t *testing.T) {
 	type fields struct {
-		dataGauge   map[internal.Metric]internal.Gauge
-		dataCounter map[internal.Metric]internal.Counter
+		dataGauge   map[metrics.Metric]metrics.Gauge
+		dataCounter map[metrics.Metric]metrics.Counter
 	}
 	type args struct {
-		metric      internal.Metric
+		metric      metrics.Metric
 		metricValue any
 	}
 	tests := []struct {
@@ -71,14 +72,14 @@ func TestStorage_Store(t *testing.T) {
 		{
 			name: "STORE",
 			fields: fields{
-				dataGauge: map[internal.Metric]internal.Gauge{
+				dataGauge: map[metrics.Metric]metrics.Gauge{
 					"StackSys": 1.0,
 				},
-				dataCounter: map[internal.Metric]internal.Counter{
+				dataCounter: map[metrics.Metric]metrics.Counter{
 					"RandomValue": 1,
 				},
 			},
-			args: args{metric: "RandomValue", metricValue: internal.Counter(6)},
+			args: args{metric: "RandomValue", metricValue: metrics.Counter(6)},
 		},
 	}
 	for _, tt := range tests {
@@ -89,11 +90,11 @@ func TestStorage_Store(t *testing.T) {
 				mu:          sync.Mutex{},
 			}
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, s.DataCounter["RandomValue"], internal.Counter(7))
+			require.Equal(t, s.DataCounter["RandomValue"], metrics.Counter(7))
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, s.DataCounter["RandomValue"], internal.Counter(13))
+			require.Equal(t, s.DataCounter["RandomValue"], metrics.Counter(13))
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
-			require.Equal(t, s.DataCounter["RandomValue"], internal.Counter(19))
+			require.Equal(t, s.DataCounter["RandomValue"], metrics.Counter(19))
 		})
 	}
 }

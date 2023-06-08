@@ -3,7 +3,8 @@ package main
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/luckyseadog/go-dev/pkg"
+	"github.com/luckyseadog/go-dev/internal/handlers"
+	"github.com/luckyseadog/go-dev/internal/server"
 )
 
 func main() {
@@ -13,11 +14,11 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Get("/", pkg.HandlerDefault)
-	r.Get("/value/*", pkg.HandlerGet)
-	r.Post("/update/*", pkg.HandlerUpdate)
+	r.Get("/", handlers.HandlerDefault)
+	r.Get("/value/*", handlers.HandlerGet)
+	r.Post("/update/*", handlers.HandlerUpdate)
 
-	server := NewServer("127.0.0.1:8080", r)
+	server := server.NewServer("127.0.0.1:8080", r)
 	server.Run()
 	defer server.Close()
 }
