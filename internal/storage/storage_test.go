@@ -1,10 +1,11 @@
 package storage
 
 import (
-	"github.com/luckyseadog/go-dev/internal/metrics"
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
 
 	"github.com/stretchr/testify/require"
 )

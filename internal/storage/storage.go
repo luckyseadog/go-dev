@@ -2,8 +2,9 @@ package storage
 
 import (
 	"errors"
-	"github.com/luckyseadog/go-dev/internal/metrics"
 	"sync"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
 var errNotExpectedType = errors.New("not expected type")

@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal/metrics"
 	"io"
 	"log"
 	"math/rand"
@@ -13,6 +12,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
 type InteractionRules struct {
