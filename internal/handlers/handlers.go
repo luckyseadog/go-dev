@@ -7,6 +7,8 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 func HandlerDefault(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +44,61 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandlerValue(w http.ResponseWriter, r *http.Request) {
+func HandlerGet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET requests are allowed!", http.StatusMethodNotAllowed)
+	}
+
+	splitPath := strings.Split(r.URL.Path, "/")
+	if len(splitPath) != 4 {
+		http.Error(w, "invalid update", http.StatusNotFound)
+		return
+	}
+
+	metricType, metricName := splitPath[len(splitPath)-2], splitPath[len(splitPath)-1]
+
+	if metricType == "gauge" {
+		value, err := storage.StorageVar.Load(metrics.Metric(metricName))
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		valueGauge, ok := value.(metrics.Gauge)
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write([]byte(fmt.Sprintf("%g", valueGauge)))
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+	} else if metricType == "counter" {
+		value, err := storage.StorageVar.Load(metrics.Metric(metricName))
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		valueCounter, ok := value.(metrics.Counter)
+		if !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write([]byte(fmt.Sprintf("%d", valueCounter)))
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+	}
+
+}
+
+func HandlerValueJSON(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 	}
@@ -67,10 +123,10 @@ func HandlerValue(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "fields value and delta should be empty", http.StatusBadRequest)
 			return
 		}
-		metricId, metricType := metricsCurrent[i].ID, metricsCurrent[i].MType
+		metricID, metricType := metricsCurrent[i].ID, metricsCurrent[i].MType
 
 		if metricType == "gauge" {
-			value, err := storage.StorageVar.Load(metrics.Metric(metricId))
+			value, err := storage.StorageVar.Load(metrics.Metric(metricID))
 			if err != nil {
 				http.Error(w, "no such metric", http.StatusNotFound)
 				return
@@ -78,7 +134,7 @@ func HandlerValue(w http.ResponseWriter, r *http.Request) {
 			valueFloat64 := float64(value.(metrics.Gauge))
 			metricsCurrent[i].Value = &valueFloat64
 		} else if metricType == "counter" {
-			value, err := storage.StorageVar.Load(metrics.Metric(metricId))
+			value, err := storage.StorageVar.Load(metrics.Metric(metricID))
 			if err != nil {
 				http.Error(w, "no such metric", http.StatusNotFound)
 				return
@@ -107,6 +163,79 @@ func HandlerValue(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
+		return
+	}
+
+	splitPath := strings.Split(r.URL.Path, "/")
+	if len(splitPath) != 5 {
+		http.Error(w, "invalid update", http.StatusNotFound)
+		return
+	}
+
+	metricType, metric, metricValueString := splitPath[len(splitPath)-3],
+		metrics.Metric(splitPath[len(splitPath)-2]), splitPath[len(splitPath)-1]
+
+	if metricType == "gauge" {
+		metricValue, err := strconv.ParseFloat(metricValueString, 64)
+		if err != nil {
+			http.Error(w, "", http.StatusBadRequest)
+			return
+		}
+		err = storage.StorageVar.Store(metric, metrics.Gauge(metricValue))
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		jsonData, err := json.Marshal(storage.StorageVar)
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(jsonData)
+
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+	} else if metricType == "counter" {
+		metricValue, err := strconv.Atoi(metricValueString)
+		if err != nil {
+			http.Error(w, "", http.StatusBadRequest)
+		}
+
+		err = storage.StorageVar.Store(metric, metrics.Counter(metricValue))
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		jsonData, err := json.Marshal(storage.StorageVar)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(jsonData)
+
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+	} else {
+		http.Error(w, "", http.StatusNotImplemented)
+		return
+	}
+}
+
+func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
