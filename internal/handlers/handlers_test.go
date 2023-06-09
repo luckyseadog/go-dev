@@ -30,8 +30,10 @@ func TestHandlerDefault(t *testing.T) {
 	}
 	r := chi.NewRouter()
 	r.Get("/", HandlerDefault)
-	r.Get("/value/*", HandlerGet)
-	r.Post("/update/*", HandlerUpdate)
+	r.Get("/value/{^+}/*", HandlerGet)
+	r.Post("/value*", HandlerValueJSON)
+	r.Post("/update/{^+}/*", HandlerUpdate)
+	r.Post("/update*", HandlerUpdateJSON)
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
@@ -101,8 +103,10 @@ func TestHandlerUpdate(t *testing.T) {
 	}
 	r := chi.NewRouter()
 	r.Get("/", HandlerDefault)
-	r.Get("/value/*", HandlerGet)
-	r.Post("/update/*", HandlerUpdate)
+	r.Get("/value/{^+}/*", HandlerGet)
+	r.Post("/value/*", HandlerValueJSON)
+	r.Post("/update/{^+}/*", HandlerUpdate)
+	r.Post("/update/*", HandlerUpdateJSON)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

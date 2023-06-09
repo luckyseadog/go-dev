@@ -15,10 +15,10 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", handlers.HandlerDefault)
-	r.Get("/value/{^+}", handlers.HandlerGet)
-	r.Post("/value*", handlers.HandlerValueJSON)
-	r.Post("/update/{^+}", handlers.HandlerUpdate)
-	r.Post("/update*", handlers.HandlerUpdateJSON)
+	r.Get("/value/{^+}/*", handlers.HandlerGet)
+	r.Post("/value/*", handlers.HandlerValueJSON)
+	r.Post("/update/{^+}/*", handlers.HandlerUpdate)
+	r.Post("/update/*", handlers.HandlerUpdateJSON)
 
 	server := server.NewServer("127.0.0.1:8080", r)
 	server.Run()
