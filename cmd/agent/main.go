@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/luckyseadog/go-dev/internal/agent"
 	"time"
+
+	"github.com/luckyseadog/go-dev/internal/agent"
 )
 
 func main() {

@@ -37,14 +37,21 @@ func (s *Storage) Store(metric metrics.Metric, metricValue any) error {
 	}
 }
 
-func (s *Storage) Load(metric metrics.Metric) (any, error) {
+func (s *Storage) Load(metricType string, metric metrics.Metric) (any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	valueGauge, ok := s.DataGauge[metric]
-	if ok {
-		return valueGauge, nil
-	} else if valueCounter, ok := s.DataCounter[metric]; ok {
-		return valueCounter, nil
+	if metricType == "gauge" {
+		if valueGauge, ok := s.DataGauge[metric]; ok {
+			return valueGauge, nil
+		} else {
+			return nil, errors.New("no such metric")
+		}
+	} else if metricType == "counter" {
+		if valueCounter, ok := s.DataCounter[metric]; ok {
+			return valueCounter, nil
+		} else {
+			return nil, errors.New("no such metric")
+		}
 	} else {
 		return nil, errors.New("no such metric")
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -25,8 +26,8 @@ func (a *Agent) GetStats() {
 			<-ticker.C
 			a.mu.Lock()
 			runtime.ReadMemStats(&a.metrics.MemStats)
+			a.metrics.RandomValue = metrics.Gauge(rand.Float64())
 			a.metrics.PollCount += 1
-			a.metrics.RandomValue = metrics.Counter(rand.Intn(100))
 			a.mu.Unlock()
 		}
 	}
@@ -43,11 +44,11 @@ func (a *Agent) PostStats() {
 			<-ticker.C
 			a.mu.Lock()
 			metricsGauge := metrics.GetMetrics(a.metrics.MemStats)
-			a.mu.Unlock()
+			metricsGauge[metrics.RandomValue] = a.metrics.RandomValue
 			metricsCounter := map[metrics.Metric]metrics.Counter{
-				metrics.PollCount:   a.metrics.PollCount,
-				metrics.RandomValue: a.metrics.RandomValue,
+				metrics.PollCount: a.metrics.PollCount,
 			}
+			a.mu.Unlock()
 			metricsCurrent := make([]metrics.Metrics, 0)
 
 			for key, value := range metricsGauge {
@@ -73,6 +74,7 @@ func (a *Agent) PostStats() {
 			address.Path = address.Path + UPDATE
 
 			ctx := context.Background()
+			fmt.Println(string(data))
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost, address.String(), bytes.NewBuffer(data))
 			if err != nil {
 				log.Println(err)

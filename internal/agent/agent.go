@@ -21,7 +21,7 @@ type InteractionRules struct {
 type Metrics struct {
 	MemStats    runtime.MemStats
 	PollCount   metrics.Counter
-	RandomValue metrics.Counter
+	RandomValue metrics.Gauge
 }
 
 type Agent struct {

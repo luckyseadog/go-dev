@@ -2,14 +2,15 @@ package handlers
 
 import (
 	"bytes"
-	"github.com/luckyseadog/go-dev/internal/metrics"
-	"github.com/luckyseadog/go-dev/internal/storage"
-	"github.com/stretchr/testify/require"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/storage"
+	"github.com/stretchr/testify/require"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"

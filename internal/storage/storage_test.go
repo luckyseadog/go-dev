@@ -46,7 +46,7 @@ func TestStorage_Load(t *testing.T) {
 				DataGauge:   tt.fields.dataGauge,
 				DataCounter: tt.fields.dataCounter,
 			}
-			got, err := s.Load(tt.args.metric)
+			got, err := s.Load("gauge", tt.args.metric)
 			require.NoError(t, err)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Load() got = %v, want %v", got, tt.want)

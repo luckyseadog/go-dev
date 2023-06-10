@@ -59,7 +59,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 	metricType, metricName := splitPath[len(splitPath)-2], splitPath[len(splitPath)-1]
 
 	if metricType == "gauge" {
-		value, err := storage.StorageVar.Load(metrics.Metric(metricName))
+		value, err := storage.StorageVar.Load(metricType, metrics.Metric(metricName))
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -78,7 +78,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else if metricType == "counter" {
-		value, err := storage.StorageVar.Load(metrics.Metric(metricName))
+		value, err := storage.StorageVar.Load(metricType, metrics.Metric(metricName))
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -133,7 +133,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request) {
 		metricID, metricType := metricsCurrent[i].ID, metricsCurrent[i].MType
 
 		if metricType == "gauge" {
-			value, err := storage.StorageVar.Load(metrics.Metric(metricID))
+			value, err := storage.StorageVar.Load(metricType, metrics.Metric(metricID))
 			if err != nil {
 				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
 				return
@@ -141,7 +141,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request) {
 			valueFloat64 := float64(value.(metrics.Gauge))
 			metricsCurrent[i].Value = &valueFloat64
 		} else if metricType == "counter" {
-			value, err := storage.StorageVar.Load(metrics.Metric(metricID))
+			value, err := storage.StorageVar.Load(metricType, metrics.Metric(metricID))
 			if err != nil {
 				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
 				return
@@ -301,26 +301,48 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	metricsCurrent = make([]metrics.Metrics, 0)
+	metricsAnswer := make([]metrics.Metrics, 0)
 
-	for key, value := range storage.StorageVar.DataGauge {
-		valueFloat64 := float64(value)
-		metricsCurrent = append(metricsCurrent, metrics.Metrics{ID: string(key), MType: "gauge", Value: &valueFloat64})
+	for _, metric := range metricsCurrent {
+		value, err := storage.StorageVar.Load(metric.MType, metrics.Metric(metric.ID))
+		if err != nil {
+			http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
+			return
+		}
+		if metric.MType == "gauge" {
+			valueFloat64 := float64(value.(metrics.Gauge))
+			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Value: &valueFloat64})
+		} else if metric.MType == "counter" {
+			valueInt64 := int64(value.(metrics.Counter))
+			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Delta: &valueInt64})
+		} else {
+			http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
+			return
+		}
 	}
 
-	for key, value := range storage.StorageVar.DataCounter {
-		valueInt64 := int64(value)
-		metricsCurrent = append(metricsCurrent, metrics.Metrics{ID: string(key), MType: "counter", Delta: &valueInt64})
-	}
+	//for key, value := range storage.StorageVar.DataGauge {
+	//	valueFloat64 := float64(value)
+	//	metricsCurrent = append(metricsCurrent, metrics.Metrics{ID: string(key), MType: "gauge", Value: &valueFloat64})
+	//}
+	//
+	//for key, value := range storage.StorageVar.DataCounter {
+	//	valueInt64 := int64(value)
+	//	metricsCurrent = append(metricsCurrent, metrics.Metrics{ID: string(key), MType: "counter", Delta: &valueInt64})
+	//}
 
-	jsonData, err := json.Marshal(metricsCurrent)
+	jsonData, err := json.Marshal(metricsAnswer)
 	if err != nil {
 		http.Error(w, "HandlerUpdateJSON: Error in making response", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(jsonData)
+	if len(metricsAnswer) == 1 {
+		_, err = w.Write(jsonData[1 : len(jsonData)-1])
+	} else {
+		_, err = w.Write(jsonData)
+	}
 
 	if err != nil {
 		http.Error(w, "HandlerUpdateJSON: Error in making response", http.StatusInternalServerError)
