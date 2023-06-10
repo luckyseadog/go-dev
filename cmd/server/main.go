@@ -16,9 +16,20 @@ func main() {
 
 	r.Get("/", handlers.HandlerDefault)
 	r.Get("/value/{^+}/*", handlers.HandlerGet)
-	r.Post("/value/*", handlers.HandlerValueJSON)
+	//r.Post("/value", handlers.HandlerValueJSON)
+	//r.Post("/value/", handlers.HandlerValueJSON)
+	r.Route("/value", func(r chi.Router) {
+		r.Post("/", handlers.HandlerValueJSON)
+		r.Post("/{_}", handlers.HandlerValueJSON)
+	})
+
 	r.Post("/update/{^+}/*", handlers.HandlerUpdate)
-	r.Post("/update/*", handlers.HandlerUpdateJSON)
+	//r.Post("/update", handlers.HandlerUpdateJSON)
+	//r.Post("/update/", handlers.HandlerUpdateJSON)
+	r.Route("/update", func(r chi.Router) {
+		r.Post("/", handlers.HandlerUpdateJSON)
+		r.Post("/{_}", handlers.HandlerUpdateJSON)
+	})
 
 	server := server.NewServer("127.0.0.1:8080", r)
 	server.Run()
