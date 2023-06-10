@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -65,8 +64,6 @@ func (a *Agent) PostStats() {
 				log.Println(err)
 				continue
 			}
-
-			fmt.Println(string(data))
 
 			address, err := url.Parse(a.ruler.address)
 			if err != nil {
