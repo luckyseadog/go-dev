@@ -3,12 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal/metrics"
-	"github.com/luckyseadog/go-dev/internal/storage"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
 func HandlerDefault(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +121,6 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(body, &metricsCurrent)
 	if err != nil {
-		w.Write(body)
 		http.Error(w, "HandlerValueJSON: unmarshal error", http.StatusBadRequest)
 		return
 	}
@@ -282,7 +282,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 
 		} else if metric.MType == "counter" {
 			if metric.Delta == nil || metric.Value != nil {
-				http.Error(w, "HandlerUpdateJSON: Error in passing metric counter", http.StatusInternalServerError)
+				http.Error(w, "HandlerUpdateJSON: Error in passing metric counter", http.StatusBadRequest)
 				return
 			}
 			err = storage.StorageVar.Store(metrics.Metric(metric.ID), metrics.Counter(*metric.Delta))

@@ -1,6 +1,10 @@
 package handlers
 
 import (
+	"bytes"
+	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/storage"
+	"github.com/stretchr/testify/require"
 	"io"
 	"log"
 	"net/http"
@@ -119,6 +123,41 @@ func TestHandlerUpdate(t *testing.T) {
 			defer result.Body.Close()
 			_, err := io.Copy(io.Discard, result.Body)
 			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestHandlerUpdateJSON(t *testing.T) {
+	tests := []struct {
+		name          string
+		request       string
+		want          int
+		bodies        [][]byte
+		answerGauge   []metrics.Gauge
+		answerCounter []metrics.Counter
+	}{
+		{
+			name:    "test #1",
+			want:    http.StatusOK,
+			request: "http://127.0.0.1:8080/update/",
+			bodies: [][]byte{[]byte(`[{"id":"Alloc1", "type":"gauge", "value":1.0}, {"id":"Counter1", "type":"counter", "delta":1}]`),
+				[]byte(`[{"id":"Alloc1", "type":"gauge", "value":2.0}, {"id":"Counter1", "type":"counter", "delta":2}]`)},
+			answerGauge:   []metrics.Gauge{1.0, 2.0},
+			answerCounter: []metrics.Counter{1, 3},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for idx, body := range tt.bodies {
+				w := httptest.NewRecorder()
+				r := httptest.NewRequest("POST", "/update/", bytes.NewBuffer(body))
+				HandlerUpdateJSON(w, r)
+
+				require.Equal(t, http.StatusOK, w.Code)
+				require.Equal(t, tt.answerGauge[idx], storage.StorageVar.DataGauge["Alloc1"])
+				require.Equal(t, tt.answerCounter[idx], storage.StorageVar.DataCounter["Counter1"])
+			}
 		})
 	}
 }

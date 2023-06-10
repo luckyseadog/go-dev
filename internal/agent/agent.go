@@ -1,11 +1,12 @@
 package agent
 
 import (
-	"github.com/luckyseadog/go-dev/internal/metrics"
 	"net/http"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
 const UPDATE = "update/"

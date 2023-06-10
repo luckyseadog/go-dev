@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -62,13 +63,15 @@ func (a *Agent) PostStats() {
 			data, err := json.Marshal(metricsCurrent)
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
+
+			fmt.Println(string(data))
 
 			address, err := url.Parse(a.ruler.address)
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 			address.Path = address.Path + UPDATE
 
@@ -76,20 +79,20 @@ func (a *Agent) PostStats() {
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost, address.String(), bytes.NewBuffer(data))
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 			req.Header.Set("Content-Type", a.ruler.contentType)
 			req.Header.Add("Accept", "application/json")
 			response, err := a.client.Do(req)
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 			defer response.Body.Close()
 			_, err = io.Copy(io.Discard, response.Body)
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 		}
 	}
