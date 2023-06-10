@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"path"
 	"runtime"
 	"time"
 
@@ -71,7 +70,7 @@ func (a *Agent) PostStats() {
 				log.Println(err)
 				return
 			}
-			address.Path = path.Join(address.Path, UPDATE)
+			address.Path = address.Path + UPDATE
 
 			ctx := context.Background()
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost, address.String(), bytes.NewBuffer(data))

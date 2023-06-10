@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const UPDATE = "update"
+const UPDATE = "update/"
 
 type InteractionRules struct {
 	address        string
