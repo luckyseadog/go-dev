@@ -8,7 +8,7 @@ import (
 
 func main() {
 	agent := agent.NewAgent("http://127.0.0.1:8080", "application/json", 2*time.Second, 10*time.Second)
-	time.AfterFunc(30*time.Second, func() {
+	time.AfterFunc(2*time.Minute, func() {
 		agent.Stop()
 	})
 	agent.Run()
