@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"github.com/luckyseadog/go-dev/internal/storage"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/luckyseadog/go-dev/internal/storage"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
