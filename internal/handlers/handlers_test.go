@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/luckyseadog/go-dev/internal/storage"
 	"io"
 	"log"
 	"net/http"
@@ -29,9 +30,16 @@ func TestHandlerDefault(t *testing.T) {
 		},
 	}
 	r := chi.NewRouter()
-	r.Get("/", HandlerDefault)
-	r.Get("/value/*", HandlerGet)
-	r.Post("/update/*", HandlerUpdate)
+	s := storage.NewStorage()
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		HandlerDefault(w, r, s)
+	})
+	r.Get("/value/*", func(w http.ResponseWriter, r *http.Request) {
+		HandlerGet(w, r, s)
+	})
+	r.Post("/update/*", func(w http.ResponseWriter, r *http.Request) {
+		HandlerUpdate(w, r, s)
+	})
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
@@ -100,9 +108,18 @@ func TestHandlerUpdate(t *testing.T) {
 		},
 	}
 	r := chi.NewRouter()
-	r.Get("/", HandlerDefault)
-	r.Get("/value/*", HandlerGet)
-	r.Post("/update/*", HandlerUpdate)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		s := storage.NewStorage()
+		HandlerDefault(w, r, s)
+	})
+	r.Get("/value/*", func(w http.ResponseWriter, r *http.Request) {
+		s := storage.NewStorage()
+		HandlerGet(w, r, s)
+	})
+	r.Post("/update/*", func(w http.ResponseWriter, r *http.Request) {
+		s := storage.NewStorage()
+		HandlerUpdate(w, r, s)
+	})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

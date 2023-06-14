@@ -11,18 +11,20 @@ var errNotExpectedType = errors.New("not expected type")
 
 var StorageVar = NewStorage()
 
-type StorageInterface interface {
+type Storage interface {
 	Store(metric metrics.Metric, metricValue any) error
 	Load(metric metrics.Metric) (any, error)
+	LoadDataGauge() map[metrics.Metric]metrics.Gauge
+	LoadDataCounter() map[metrics.Metric]metrics.Counter
 }
 
-type Storage struct {
+type MyStorage struct {
 	DataGauge   map[metrics.Metric]metrics.Gauge
 	DataCounter map[metrics.Metric]metrics.Counter
-	mu          sync.Mutex
+	mu          sync.RWMutex
 }
 
-func (s *Storage) Store(metric metrics.Metric, metricValue any) error {
+func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	switch metricValue := metricValue.(type) {
@@ -37,9 +39,9 @@ func (s *Storage) Store(metric metrics.Metric, metricValue any) error {
 	}
 }
 
-func (s *Storage) Load(metric metrics.Metric) (any, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *MyStorage) Load(metric metrics.Metric) (any, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	valueGauge, ok := s.DataGauge[metric]
 	if ok {
 		return valueGauge, nil
@@ -50,8 +52,16 @@ func (s *Storage) Load(metric metrics.Metric) (any, error) {
 	}
 }
 
-func NewStorage() *Storage {
+func (s *MyStorage) LoadDataGauge() map[metrics.Metric]metrics.Gauge {
+	return s.DataGauge
+}
+
+func (s *MyStorage) LoadDataCounter() map[metrics.Metric]metrics.Counter {
+	return s.DataCounter
+}
+
+func NewStorage() *MyStorage {
 	dataGauge := map[metrics.Metric]metrics.Gauge{}
 	dataCounter := map[metrics.Metric]metrics.Counter{}
-	return &Storage{DataGauge: dataGauge, DataCounter: dataCounter, mu: sync.Mutex{}}
+	return &MyStorage{DataGauge: dataGauge, DataCounter: dataCounter, mu: sync.RWMutex{}}
 }
