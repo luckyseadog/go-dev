@@ -88,7 +88,7 @@ func TestStorage_Store(t *testing.T) {
 			s := &MyStorage{
 				DataGauge:   tt.fields.dataGauge,
 				DataCounter: tt.fields.dataCounter,
-				mu:          sync.Mutex{},
+				mu:          sync.RWMutex{},
 			}
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
 			require.Equal(t, s.DataCounter["RandomValue"], metrics.Counter(7))
