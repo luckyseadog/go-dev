@@ -33,12 +33,35 @@ func TestHandlerDefault(t *testing.T) {
 			want:    "<html><body><p>a</p><p>c</p></body></html>",
 		},
 	}
+	s := storage.NewStorage()
 	r := chi.NewRouter()
-	r.Get("/", HandlerDefault)
-	r.Get("/value/{^+}/*", HandlerGet)
-	r.Post("/value*", HandlerValueJSON)
-	r.Post("/update/{^+}/*", HandlerUpdate)
-	r.Post("/update*", HandlerUpdateJSON)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		HandlerDefault(w, r, s)
+	})
+	r.Get("/value/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
+		HandlerGet(w, r, s)
+	})
+	r.Route("/value", func(r chi.Router) {
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			HandlerValueJSON(w, r, s)
+		})
+		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+			HandlerValueJSON(w, r, s)
+		})
+	})
+
+	r.Post("/update/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
+		HandlerUpdate(w, r, s)
+	})
+	r.Route("/update", func(r chi.Router) {
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			HandlerUpdateJSON(w, r, s)
+		})
+		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+			HandlerUpdateJSON(w, r, s)
+		})
+	})
+
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
@@ -106,12 +129,34 @@ func TestHandlerUpdate(t *testing.T) {
 			request: "http://127.0.0.1:8080/update/gauge/",
 		},
 	}
+	s := storage.NewStorage()
 	r := chi.NewRouter()
-	r.Get("/", HandlerDefault)
-	r.Get("/value/{^+}/*", HandlerGet)
-	r.Post("/value/*", HandlerValueJSON)
-	r.Post("/update/{^+}/*", HandlerUpdate)
-	r.Post("/update/*", HandlerUpdateJSON)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		HandlerDefault(w, r, s)
+	})
+	r.Get("/value/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
+		HandlerGet(w, r, s)
+	})
+	r.Route("/value", func(r chi.Router) {
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			HandlerValueJSON(w, r, s)
+		})
+		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+			HandlerValueJSON(w, r, s)
+		})
+	})
+
+	r.Post("/update/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
+		HandlerUpdate(w, r, s)
+	})
+	r.Route("/update", func(r chi.Router) {
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			HandlerUpdateJSON(w, r, s)
+		})
+		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+			HandlerUpdateJSON(w, r, s)
+		})
+	})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -147,17 +192,18 @@ func TestHandlerUpdateJSON(t *testing.T) {
 			answerCounter: []metrics.Counter{1, 3},
 		},
 	}
+	s := storage.NewStorage()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for idx, body := range tt.bodies {
 				w := httptest.NewRecorder()
 				r := httptest.NewRequest("POST", "/update/", bytes.NewBuffer(body))
-				HandlerUpdateJSON(w, r)
+				HandlerUpdateJSON(w, r, s)
 
 				require.Equal(t, http.StatusOK, w.Code)
-				require.Equal(t, tt.answerGauge[idx], storage.StorageVar.DataGauge["Alloc1"])
-				require.Equal(t, tt.answerCounter[idx], storage.StorageVar.DataCounter["Counter1"])
+				require.Equal(t, tt.answerGauge[idx], s.DataGauge["Alloc1"])
+				require.Equal(t, tt.answerCounter[idx], s.DataCounter["Counter1"])
 			}
 		})
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func HandlerDefault(w http.ResponseWriter, r *http.Request) {
+func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "HandlerDefault: Only GET requests are allowed!", http.StatusMethodNotAllowed)
 	}
@@ -24,14 +24,14 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 		return
 	}
-	for key := range storage.StorageVar.DataGauge {
+	for key := range storage.LoadDataGauge() {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 			return
 		}
 	}
-	for key := range storage.StorageVar.DataCounter {
+	for key := range storage.LoadDataCounter() {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
@@ -45,7 +45,7 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandlerGet(w http.ResponseWriter, r *http.Request) {
+func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "HandlerDefault: Only GET requests are allowed!", http.StatusMethodNotAllowed)
 	}
@@ -59,7 +59,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 	metricType, metricName := splitPath[len(splitPath)-2], splitPath[len(splitPath)-1]
 
 	if metricType == "gauge" {
-		value, err := storage.StorageVar.Load(metricType, metrics.Metric(metricName))
+		value, err := storage.Load(metricType, metrics.Metric(metricName))
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -78,7 +78,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else if metricType == "counter" {
-		value, err := storage.StorageVar.Load(metricType, metrics.Metric(metricName))
+		value, err := storage.Load(metricType, metrics.Metric(metricName))
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -99,7 +99,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func HandlerValueJSON(w http.ResponseWriter, r *http.Request) {
+func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
 		http.Error(w, "HandlerValueJSON: Only POST requests are allowed!", http.StatusMethodNotAllowed)
@@ -133,7 +133,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request) {
 		metricID, metricType := metricsCurrent[i].ID, metricsCurrent[i].MType
 
 		if metricType == "gauge" {
-			value, err := storage.StorageVar.Load(metricType, metrics.Metric(metricID))
+			value, err := storage.Load(metricType, metrics.Metric(metricID))
 			if err != nil {
 				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
 				return
@@ -141,7 +141,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request) {
 			valueFloat64 := float64(value.(metrics.Gauge))
 			metricsCurrent[i].Value = &valueFloat64
 		} else if metricType == "counter" {
-			value, err := storage.StorageVar.Load(metricType, metrics.Metric(metricID))
+			value, err := storage.Load(metricType, metrics.Metric(metricID))
 			if err != nil {
 				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
 				return
@@ -172,7 +172,8 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
+func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
+	//log.Println(StorageVar)
 	if r.Method != http.MethodPost {
 		http.Error(w, "HandlerUpdate: Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
@@ -193,13 +194,13 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		err = storage.StorageVar.Store(metric, metrics.Gauge(metricValue))
+		err = storage.Store(metric, metrics.Gauge(metricValue))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		jsonData, err := json.Marshal(storage.StorageVar)
+		jsonData, err := json.Marshal(storage.LoadDataGauge())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -219,13 +220,13 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		}
 
-		err = storage.StorageVar.Store(metric, metrics.Counter(metricValue))
+		err = storage.Store(metric, metrics.Counter(metricValue))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		jsonData, err := json.Marshal(storage.StorageVar)
+		jsonData, err := json.Marshal(storage.LoadDataCounter())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
@@ -245,7 +246,7 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
+func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
 		http.Error(w, "HandlerUpdateJSON: Only POST requests are allowed!", http.StatusMethodNotAllowed)
@@ -278,7 +279,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "HandlerUpdateJSON: Error in passing metric gauge", http.StatusBadRequest)
 				return
 			}
-			err = storage.StorageVar.Store(metrics.Metric(metric.ID), metrics.Gauge(*metric.Value))
+			err = storage.Store(metrics.Metric(metric.ID), metrics.Gauge(*metric.Value))
 			if err != nil {
 				http.Error(w, "HandlerUpdateJSON: Could not store gauge", http.StatusInternalServerError)
 				return
@@ -289,7 +290,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "HandlerUpdateJSON: Error in passing metric counter", http.StatusBadRequest)
 				return
 			}
-			err = storage.StorageVar.Store(metrics.Metric(metric.ID), metrics.Counter(*metric.Delta))
+			err = storage.Store(metrics.Metric(metric.ID), metrics.Counter(*metric.Delta))
 			if err != nil {
 				http.Error(w, "HandlerUpdateJSON: Could not store counter", http.StatusInternalServerError)
 				return
@@ -304,7 +305,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 	metricsAnswer := make([]metrics.Metrics, 0)
 
 	for _, metric := range metricsCurrent {
-		value, err := storage.StorageVar.Load(metric.MType, metrics.Metric(metric.ID))
+		value, err := storage.Load(metric.MType, metrics.Metric(metric.ID))
 		if err != nil {
 			http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
 			return
@@ -320,16 +321,6 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
-	//for key, value := range storage.StorageVar.DataGauge {
-	//	valueFloat64 := float64(value)
-	//	metricsCurrent = append(metricsCurrent, metrics.Metrics{ID: string(key), MType: "gauge", Value: &valueFloat64})
-	//}
-	//
-	//for key, value := range storage.StorageVar.DataCounter {
-	//	valueInt64 := int64(value)
-	//	metricsCurrent = append(metricsCurrent, metrics.Metrics{ID: string(key), MType: "counter", Delta: &valueInt64})
-	//}
 
 	jsonData, err := json.Marshal(metricsAnswer)
 	if err != nil {
