@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,6 +12,11 @@ import (
 )
 
 func main() {
+	address := os.Getenv("ADDRESS")
+	if address == "" {
+		address = "http://127.0.0.1:8080"
+	}
+
 	s := storage.NewStorage()
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -45,7 +51,7 @@ func main() {
 		})
 	})
 
-	server := server.NewServer("127.0.0.1:8080", r)
+	server := server.NewServer(address, r)
 	server.Run()
 	defer server.Close()
 }
