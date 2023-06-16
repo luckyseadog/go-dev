@@ -9,8 +9,6 @@ import (
 
 var errNotExpectedType = errors.New("not expected type")
 
-var StorageVar = NewStorage()
-
 type Storage interface {
 	Store(metric metrics.Metric, metricValue any) error
 	Load(metricType string, metric metrics.Metric) (any, error)
