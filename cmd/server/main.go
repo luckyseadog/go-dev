@@ -51,7 +51,7 @@ func main() {
 		})
 	})
 
-	server := server.NewServer("127.0.0.1:8080", r)
+	server := server.NewServer(address, r)
 	server.Run()
 	defer server.Close()
 }

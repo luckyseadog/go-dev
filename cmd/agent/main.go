@@ -12,6 +12,8 @@ func main() {
 	address := os.Getenv("ADDRESS")
 	if address == "" {
 		address = "http://127.0.0.1:8080"
+	} else {
+		address = "http://" + address
 	}
 
 	contentType := "application/json"
