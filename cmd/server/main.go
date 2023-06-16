@@ -14,7 +14,7 @@ import (
 func main() {
 	address := os.Getenv("ADDRESS")
 	if address == "" {
-		address = "http://127.0.0.1:8080"
+		address = "127.0.0.1:8080"
 	}
 
 	s := storage.NewStorage()
@@ -51,7 +51,7 @@ func main() {
 		})
 	})
 
-	server := server.NewServer(address, r)
+	server := server.NewServer("127.0.0.1:8080", r)
 	server.Run()
 	defer server.Close()
 }
