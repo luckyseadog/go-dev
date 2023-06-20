@@ -142,7 +142,7 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 		lastData = scanner.Bytes()
 	}
 
-	//s.mu.Unlock()
+	s.mu.Unlock()
 
 	if scanner.Err() != nil {
 		return scanner.Err()
@@ -152,12 +152,50 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 	if err != nil {
 		return err
 	}
-	s.mu.Unlock()
 
 	for key, value := range metricsLoaded {
-		err = s.Store(metrics.Metric(key), value)
-		if err != nil {
-			return err
+		var typeString string
+		switch value.(type) {
+		case float64:
+			typeString = "float64"
+		case int64:
+			typeString = "int64"
+		}
+
+		if typeString == "float64" {
+			if metrics.MapMetricTypes[key] == "Gauge" {
+				err = s.Store(metrics.Metric(key), value.(float64))
+				if err != nil {
+					return err
+				}
+			} else if metrics.MapMetricTypes[key] == "Counter" {
+				err = s.Store(metrics.Metric(key), int64(value.(float64)))
+				if err != nil {
+					return err
+				}
+			} else {
+				err = s.Store(metrics.Metric(key), value.(float64))
+				if err != nil {
+					return err
+				}
+			}
+		} else if typeString == "int64" {
+			if metrics.MapMetricTypes[key] == "Gauge" {
+				err = s.Store(metrics.Metric(key), float64(value.(int64)))
+				if err != nil {
+					return err
+				}
+			} else if metrics.MapMetricTypes[key] == "Counter" {
+				err = s.Store(metrics.Metric(key), value.(int64))
+				if err != nil {
+					return err
+				}
+			} else {
+				err = s.Store(metrics.Metric(key), value.(int64))
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
