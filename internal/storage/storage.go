@@ -1,7 +1,10 @@
 package storage
 
 import (
+	"bufio"
+	"encoding/json"
 	"errors"
+	"os"
 	"sync"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
@@ -79,6 +82,78 @@ func (s *MyStorage) LoadDataCounter() map[metrics.Metric]metrics.Counter {
 	}
 
 	return copyDataCounter
+}
+
+func (s *MyStorage) SaveToFile(filepath string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	file, err := os.OpenFile(filepath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+	out := map[metrics.Metric]any{}
+	for key, value := range s.DataGauge {
+		out[key] = value
+	}
+	for key, value := range s.DataCounter {
+		out[key] = value
+	}
+
+	writer := bufio.NewWriter(file)
+	data, err := json.Marshal(out)
+	if err != nil {
+		return err
+	}
+
+	_, err = writer.Write(data)
+	if err != nil {
+		return err
+	}
+	_ = writer.WriteByte('\n')
+
+	return writer.Flush()
+}
+
+func (s *MyStorage) LoadFromFile(filepath string) error {
+	s.mu.Lock()
+
+	file, err := os.OpenFile(filepath, os.O_CREATE|os.O_RDONLY, 0777)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	var lastData []byte
+	var metricsLoad map[string]any
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lastData = scanner.Bytes()
+	}
+
+	if scanner.Err() != nil {
+		return scanner.Err()
+	}
+
+	err = json.Unmarshal(lastData, &metricsLoad)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Unlock()
+
+	for key, value := range metricsLoad {
+		err = s.Store(metrics.Metric(key), value)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 func NewStorage() *MyStorage {

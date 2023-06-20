@@ -99,3 +99,31 @@ func TestStorage_Store(t *testing.T) {
 		})
 	}
 }
+
+//func TestMyStorage_SaveToFile(t *testing.T) {
+//	tests := []struct{
+//		name string
+//		toSave string
+//	}{
+//		{
+//			name: "test #1",
+//			toSave: "Hello, World",
+//		},
+//	}
+//
+//	for _, tt := range tests {
+//		t.Run(tt.name, func(t *testing.T) {
+//			s := &MyStorage{
+//				DataGauge:   tt.fields.dataGauge,
+//				DataCounter: tt.fields.dataCounter,
+//				mu:          sync.RWMutex{},
+//			}
+//			_ = s.Store(tt.args.metric, tt.args.metricValue)
+//			require.Equal(t, s.DataCounter["RandomValue"], metrics.Counter(7))
+//			_ = s.Store(tt.args.metric, tt.args.metricValue)
+//			require.Equal(t, s.DataCounter["RandomValue"], metrics.Counter(13))
+//			_ = s.Store(tt.args.metric, tt.args.metricValue)
+//			require.Equal(t, s.DataCounter["RandomValue"], metrics.Counter(19))
+//		})
+//	}
+//}
