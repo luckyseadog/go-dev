@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/luckyseadog/go-dev/internal/metrics"
-	"github.com/luckyseadog/go-dev/internal/storage"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
 func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Storage) {

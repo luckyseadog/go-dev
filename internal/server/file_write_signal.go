@@ -1,19 +1,26 @@
 package server
 
-import "time"
+import (
+	"log"
+	"time"
 
-func PassSignal(cancelChan chan struct{}, fileSaveChan chan time.Time, storeInterval time.Duration) {
-	if storeInterval > 0 {
-		backUpTicker := time.NewTicker(storeInterval)
+	"github.com/luckyseadog/go-dev/internal/storage"
+)
+
+func PassSignal(cancelChan chan struct{}, fileSaveChan chan time.Time, envVariables *EnvVariables, storage storage.Storage) {
+	if envVariables.StoreInterval > 0 {
+		backUpTicker := time.NewTicker(envVariables.StoreInterval)
 		go func() {
 			defer backUpTicker.Stop()
 			for {
 				select {
-				case fileSaveChan <- <-backUpTicker.C:
+				case <-backUpTicker.C:
+					err := storage.SaveToFile(envVariables.StoreFile)
+					if err != nil {
+						log.Println(err)
+					}
 				case <-cancelChan:
 					return
-				default:
-					<-backUpTicker.C
 				}
 			}
 		}()
@@ -21,7 +28,7 @@ func PassSignal(cancelChan chan struct{}, fileSaveChan chan time.Time, storeInte
 		go func() {
 			for {
 				select {
-				case fileSaveChan <- time.Now():
+				case fileSaveChan <- time.Time{}:
 				case <-cancelChan:
 					return
 				}

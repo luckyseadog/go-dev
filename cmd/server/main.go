@@ -1,16 +1,17 @@
 package main
 
 import (
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/luckyseadog/go-dev/internal/handlers"
-	"github.com/luckyseadog/go-dev/internal/server"
-	"github.com/luckyseadog/go-dev/internal/storage"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/luckyseadog/go-dev/internal/handlers"
+	"github.com/luckyseadog/go-dev/internal/server"
+	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
 func main() {
@@ -26,25 +27,20 @@ func main() {
 		}
 	}
 
-	if envVariables.Restore == true {
+	if envVariables.Restore {
 		if _, err := os.Stat(envVariables.StoreFile); err == nil {
 			err := s.LoadFromFile(envVariables.StoreFile)
 			if err != nil {
 				log.Println(err)
 			}
 		}
-		//file, err := os.OpenFile(envVariables.StoreFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
-		//if err != nil {
-		//	log.Fatal(err)
-		//}
-		//file.Close()
 	}
 
-	fileSaveChan := make(chan time.Time, 1)
+	fileSaveChan := make(chan time.Time)
 	cancel := make(chan struct{})
 	defer close(cancel)
 
-	server.PassSignal(cancel, fileSaveChan, envVariables.StoreInterval)
+	server.PassSignal(cancel, fileSaveChan, envVariables, s)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

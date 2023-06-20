@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal/metrics"
-	"github.com/luckyseadog/go-dev/internal/storage"
 	"net/http"
 	"strings"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
 func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage) {

@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal/storage"
 	"net/http"
+
+	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
 func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Storage) {

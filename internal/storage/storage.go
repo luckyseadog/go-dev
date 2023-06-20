@@ -17,6 +17,8 @@ type Storage interface {
 	Load(metricType string, metric metrics.Metric) (any, error)
 	LoadDataGauge() map[metrics.Metric]metrics.Gauge
 	LoadDataCounter() map[metrics.Metric]metrics.Counter
+	SaveToFile(filepath string) error
+	LoadFromFile(filepath string) error
 }
 
 type MyStorage struct {
@@ -100,16 +102,16 @@ func (s *MyStorage) SaveToFile(filepath string) error {
 	}
 
 	defer file.Close()
-	out := map[metrics.Metric]any{}
+	copyMetrics := map[metrics.Metric]any{}
 	for key, value := range s.DataGauge {
-		out[key] = value
+		copyMetrics[key] = value
 	}
 	for key, value := range s.DataCounter {
-		out[key] = value
+		copyMetrics[key] = value
 	}
 
 	writer := bufio.NewWriter(file)
-	data, err := json.Marshal(out)
+	data, err := json.Marshal(copyMetrics)
 	if err != nil {
 		return err
 	}
@@ -134,24 +136,25 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 	defer file.Close()
 
 	var lastData []byte
-	var metricsLoad map[string]any
+	var metricsLoaded map[string]any
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		lastData = scanner.Bytes()
 	}
 
-	s.mu.Unlock()
+	//s.mu.Unlock()
 
 	if scanner.Err() != nil {
 		return scanner.Err()
 	}
 
-	err = json.Unmarshal(lastData, &metricsLoad)
+	err = json.Unmarshal(lastData, &metricsLoaded)
 	if err != nil {
 		return err
 	}
+	s.mu.Unlock()
 
-	for key, value := range metricsLoad {
+	for key, value := range metricsLoaded {
 		err = s.Store(metrics.Metric(key), value)
 		if err != nil {
 			return err
