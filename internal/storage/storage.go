@@ -32,8 +32,14 @@ func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	case metrics.Gauge:
 		s.DataGauge[metric] = metricValue
 		return nil
+	case float64:
+		s.DataGauge[metric] = metrics.Gauge(metricValue)
+		return nil
 	case metrics.Counter:
 		s.DataCounter[metric] += metricValue
+		return nil
+	case int64:
+		s.DataCounter[metric] += metrics.Counter(metricValue)
 		return nil
 	default:
 		return errNotExpectedType
@@ -134,6 +140,8 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 		lastData = scanner.Bytes()
 	}
 
+	s.mu.Unlock()
+
 	if scanner.Err() != nil {
 		return scanner.Err()
 	}
@@ -142,8 +150,6 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 	if err != nil {
 		return err
 	}
-
-	s.mu.Unlock()
 
 	for key, value := range metricsLoad {
 		err = s.Store(metrics.Metric(key), value)

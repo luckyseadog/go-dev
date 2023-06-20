@@ -33,11 +33,11 @@ func main() {
 				log.Println(err)
 			}
 		}
-		file, err := os.OpenFile(envVariables.StoreFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
+		//file, err := os.OpenFile(envVariables.StoreFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
+		//if err != nil {
+		//	log.Fatal(err)
+		//}
+		//file.Close()
 	}
 
 	fileSaveChan := make(chan time.Time, 1)
