@@ -161,7 +161,7 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 			} else if metrics.MapMetricTypes[key] == "Counter" {
 				err = s.Store(metrics.Metric(key), int64(v))
 			} else {
-				err = s.Store(metrics.Metric(key), v)
+				_ = s.Store(metrics.Metric(key), v)
 				err = s.Store(metrics.Metric(key), int64(v))
 			}
 		case int64:
@@ -170,7 +170,7 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 			} else if metrics.MapMetricTypes[key] == "Counter" {
 				err = s.Store(metrics.Metric(key), v)
 			} else {
-				err = s.Store(metrics.Metric(key), v)
+				_ = s.Store(metrics.Metric(key), v)
 				err = s.Store(metrics.Metric(key), float64(v))
 			}
 		}
