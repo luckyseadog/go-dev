@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/luckyseadog/go-dev/internal/handlers"
+	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
@@ -27,6 +28,11 @@ func main() {
 		}
 	}
 
+	err := metrics.LoadMetricsTypes(filepath.Join(dir, "metric_types.json"))
+	if err != nil {
+		log.Println(err)
+	}
+
 	if envVariables.Restore {
 		if _, err := os.Stat(envVariables.StoreFile); err == nil {
 			err := s.LoadFromFile(envVariables.StoreFile)
@@ -41,6 +47,7 @@ func main() {
 	defer close(cancel)
 
 	server.PassSignal(cancel, fileSaveChan, envVariables, s)
+	metrics.SaveMetricsTypes(cancel, filepath.Join(dir, "metric_types.json"))
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

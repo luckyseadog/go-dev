@@ -32,15 +32,19 @@ func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	defer s.mu.Unlock()
 	switch metricValue := metricValue.(type) {
 	case metrics.Gauge:
+		metrics.MapMetricTypes[string(metric)] = "Gauge"
 		s.DataGauge[metric] = metricValue
 		return nil
 	case float64:
+		metrics.MapMetricTypes[string(metric)] = "Gauge"
 		s.DataGauge[metric] = metrics.Gauge(metricValue)
 		return nil
 	case metrics.Counter:
+		metrics.MapMetricTypes[string(metric)] = "Counter"
 		s.DataCounter[metric] += metricValue
 		return nil
 	case int64:
+		metrics.MapMetricTypes[string(metric)] = "Counter"
 		s.DataCounter[metric] += metrics.Counter(metricValue)
 		return nil
 	default:
@@ -136,7 +140,7 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 	defer file.Close()
 
 	var lastData []byte
-	var metricsLoaded map[string]any
+	var metricsLoaded map[string]float64
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		lastData = scanner.Bytes()
@@ -148,31 +152,22 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 		return scanner.Err()
 	}
 
+	if !json.Valid(lastData) {
+		return nil
+	}
+
 	err = json.Unmarshal(lastData, &metricsLoaded)
 	if err != nil {
 		return err
 	}
 
 	for key, value := range metricsLoaded {
-		switch v := value.(type) {
-		case float64:
-			if metrics.MapMetricTypes[key] == "Gauge" {
-				err = s.Store(metrics.Metric(key), v)
-			} else if metrics.MapMetricTypes[key] == "Counter" {
-				err = s.Store(metrics.Metric(key), int64(v))
-			} else {
-				_ = s.Store(metrics.Metric(key), v)
-				err = s.Store(metrics.Metric(key), int64(v))
-			}
-		case int64:
-			if metrics.MapMetricTypes[key] == "Gauge" {
-				err = s.Store(metrics.Metric(key), float64(v))
-			} else if metrics.MapMetricTypes[key] == "Counter" {
-				err = s.Store(metrics.Metric(key), v)
-			} else {
-				_ = s.Store(metrics.Metric(key), v)
-				err = s.Store(metrics.Metric(key), float64(v))
-			}
+		if metrics.MapMetricTypes[key] == "Gauge" {
+			err = s.Store(metrics.Metric(key), value)
+		} else if metrics.MapMetricTypes[key] == "Counter" {
+			err = s.Store(metrics.Metric(key), int64(value))
+		} else {
+			err = s.Store(metrics.Metric(key), value)
 		}
 	}
 
