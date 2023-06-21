@@ -99,7 +99,9 @@ func (s *MyStorage) LoadDataCounter() map[metrics.Metric]metrics.Counter {
 func (s *MyStorage) SaveToFile(filepath string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
+	if filepath == "" {
+		return nil
+	}
 	file, err := os.OpenFile(filepath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
 	if err != nil {
 		return err
