@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -26,7 +25,6 @@ func main() {
 	} else {
 		address = "http://" + address
 	}
-	fmt.Println(addressFlag)
 
 	contentType := "application/json"
 
