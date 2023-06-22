@@ -1,21 +1,23 @@
-package metrics
+package storage
 
 import (
 	"encoding/json"
 	"errors"
+	"github.com/luckyseadog/go-dev/internal/metrics"
 	"log"
 	"os"
 	"time"
 )
 
-func SaveMetricsTypes(cancelChan chan struct{}, filepath string) {
+func (s *MyStorage) SaveMetricsTypes(cancelChan chan struct{}, filepath string) {
 	go func() {
 		for {
 			select {
 			case <-cancelChan:
 				return
 			default:
-				data, err := json.Marshal(MapMetricTypes)
+				s.mu.Lock()
+				data, err := json.Marshal(metrics.MapMetricTypes)
 				if err != nil {
 					log.Println(err)
 				}
@@ -23,14 +25,15 @@ func SaveMetricsTypes(cancelChan chan struct{}, filepath string) {
 				if err != nil {
 					log.Println(err)
 				}
-				time.Sleep(1 * time.Second)
+				time.Sleep(1 * time.Millisecond)
+				s.mu.Unlock()
 			}
 
 		}
 	}()
 }
 
-func LoadMetricsTypes(filepath string) error {
+func (s *MyStorage) LoadMetricsTypes(filepath string) error {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return err
@@ -46,11 +49,13 @@ func LoadMetricsTypes(filepath string) error {
 		return err
 	}
 
+	s.mu.Lock()
 	for key, value := range tempMap {
-		if _, ok := MapMetricTypes[key]; !ok {
-			MapMetricTypes[key] = value
+		if _, ok := metrics.MapMetricTypes[key]; !ok {
+			metrics.MapMetricTypes[key] = value
 		}
 	}
+	s.mu.Unlock()
 
 	return nil
 }
