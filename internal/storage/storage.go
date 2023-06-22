@@ -25,6 +25,7 @@ type MyStorage struct {
 	DataGauge   map[metrics.Metric]metrics.Gauge
 	DataCounter map[metrics.Metric]metrics.Counter
 	mu          sync.RWMutex
+	muMetric    sync.Mutex
 }
 
 func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
@@ -32,19 +33,27 @@ func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	defer s.mu.Unlock()
 	switch metricValue := metricValue.(type) {
 	case metrics.Gauge:
+		s.muMetric.Lock()
 		metrics.MapMetricTypes[string(metric)] = "Gauge"
+		s.muMetric.Unlock()
 		s.DataGauge[metric] = metricValue
 		return nil
 	case float64:
+		s.muMetric.Lock()
 		metrics.MapMetricTypes[string(metric)] = "Gauge"
+		s.muMetric.Unlock()
 		s.DataGauge[metric] = metrics.Gauge(metricValue)
 		return nil
 	case metrics.Counter:
+		s.muMetric.Lock()
 		metrics.MapMetricTypes[string(metric)] = "Counter"
+		s.muMetric.Unlock()
 		s.DataCounter[metric] += metricValue
 		return nil
 	case int64:
+		s.muMetric.Lock()
 		metrics.MapMetricTypes[string(metric)] = "Counter"
+		s.muMetric.Unlock()
 		s.DataCounter[metric] += metrics.Counter(metricValue)
 		return nil
 	default:

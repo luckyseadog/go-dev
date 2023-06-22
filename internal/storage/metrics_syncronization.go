@@ -16,17 +16,17 @@ func (s *MyStorage) SaveMetricsTypes(cancelChan chan struct{}, filepath string) 
 			case <-cancelChan:
 				return
 			default:
-				s.mu.Lock()
+				s.muMetric.Lock()
 				data, err := json.Marshal(metrics.MapMetricTypes)
 				if err != nil {
 					log.Println(err)
 				}
+				s.muMetric.Unlock()
 				err = os.WriteFile(filepath, data, 0777)
 				if err != nil {
 					log.Println(err)
 				}
 				time.Sleep(1 * time.Millisecond)
-				s.mu.Unlock()
 			}
 
 		}
