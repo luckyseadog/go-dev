@@ -23,7 +23,7 @@ func SaveMetricsTypes(cancelChan chan struct{}, filepath string) {
 				if err != nil {
 					log.Println(err)
 				}
-				time.Sleep(1 * time.Millisecond)
+				time.Sleep(1 * time.Second)
 			}
 
 		}

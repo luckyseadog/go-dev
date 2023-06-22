@@ -36,6 +36,8 @@ func SetUp() *EnvVariables {
 		address = addressFlag
 	}
 
+	log.Println(address)
+
 	var storeInterval time.Duration
 	storeIntervalStr := os.Getenv("STORE_INTERVAL")
 	if storeIntervalStr == "" {
