@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -15,8 +16,21 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 		http.Error(w, "HandlerValueJSON: Only POST requests are allowed!", http.StatusMethodNotAllowed)
 	}
 
-	defer r.Body.Close()
-	body, err := io.ReadAll(r.Body)
+	var reader io.Reader
+	if r.Header.Get("Content-Encoding") == "gzip" {
+		gz, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, "HandlerValueJSON: error in reading gzip", http.StatusInternalServerError)
+			defer r.Body.Close()
+		}
+		reader = gz
+		defer gz.Close()
+	} else {
+		reader = r.Body
+		defer r.Body.Close()
+	}
+
+	body, err := io.ReadAll(reader)
 	if err != nil {
 		http.Error(w, "HandlerValueJSON: Read body error", http.StatusBadRequest)
 		return

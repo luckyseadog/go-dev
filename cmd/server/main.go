@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"log"
 	"net/http"
 	"os"
@@ -97,7 +98,7 @@ func main() {
 		})
 	})
 
-	srv := server.NewServer(envVariables.Address, r)
+	srv := server.NewServer(envVariables.Address, middlewares.GzipMiddleware(r))
 	srv.Run()
 	defer srv.Close()
 }
