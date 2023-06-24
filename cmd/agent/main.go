@@ -59,7 +59,7 @@ func main() {
 	}
 
 	agent := agent.NewAgent(address, contentType, pollInterval, reportInterval)
-	time.AfterFunc(2*time.Minute, func() {
+	time.AfterFunc(5*time.Minute, func() {
 		agent.Stop()
 	})
 	agent.Run()

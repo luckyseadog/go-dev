@@ -45,19 +45,12 @@ func SetUp() *EnvVariables {
 	}
 	if storeIntervalStr == "" {
 		storeInterval = 0
-	} else if storeIntervalStr[len(storeIntervalStr)-1] == 's' {
-		var err error
-		storeInterval, err = time.ParseDuration(storeIntervalStr)
-		if err != nil {
-			log.Fatal("Invalid storeInterval")
-		}
-	} else {
-		var err error
-		numSec, err := strconv.Atoi(storeIntervalStr)
-		if err != nil {
-			log.Fatal("Invalid storeInterval")
-		}
+	} else if duration, err := time.ParseDuration(storeIntervalStr); err == nil {
+		storeInterval = duration
+	} else if numSec, err := strconv.Atoi(storeIntervalStr); err == nil {
 		storeInterval = time.Second * time.Duration(numSec)
+	} else {
+		log.Fatal("Invalid storeInterval")
 	}
 
 	storeFile := os.Getenv("STORE_FILE")

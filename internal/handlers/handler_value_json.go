@@ -22,6 +22,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 		if err != nil {
 			http.Error(w, "HandlerValueJSON: error in reading gzip", http.StatusInternalServerError)
 			defer r.Body.Close()
+			return
 		}
 		reader = gz
 		defer gz.Close()

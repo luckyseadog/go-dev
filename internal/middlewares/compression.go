@@ -25,7 +25,7 @@ func GzipMiddleware(next http.Handler) http.Handler {
 
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			io.WriteString(w, err.Error())
+			http.Error(w, "HandlerValueJSON: con not wrap writer as gzipWriter", http.StatusInternalServerError)
 			return
 		}
 		defer gz.Close()
