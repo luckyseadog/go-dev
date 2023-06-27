@@ -17,8 +17,11 @@ type Storage interface {
 	Load(metricType string, metric metrics.Metric) (any, error)
 	LoadDataGauge() map[metrics.Metric]metrics.Gauge
 	LoadDataCounter() map[metrics.Metric]metrics.Counter
+
 	SaveToFile(filepath string) error
 	LoadFromFile(filepath string) error
+	SaveMetricsTypes(cancelChan chan struct{}, filepath string)
+	LoadMetricsTypes(filepath string) error
 }
 
 type MyStorage struct {

@@ -4,7 +4,6 @@ import (
 	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -17,37 +16,14 @@ import (
 
 func main() {
 	s := storage.NewStorage()
-
-	envVariables := server.SetUp()
-
-	dir := filepath.Dir(envVariables.StoreFile)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err := os.Mkdir(dir, 0777)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	err := s.LoadMetricsTypes(filepath.Join(dir, "metric_types.json"))
-	if err != nil {
-		log.Println(err)
-	}
-
-	if envVariables.Restore {
-		if _, err := os.Stat(envVariables.StoreFile); err == nil {
-			err := s.LoadFromFile(envVariables.StoreFile)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
+	envVariables := server.SetUp(s)
 
 	fileSaveChan := make(chan time.Time)
 	cancel := make(chan struct{})
 	defer close(cancel)
 
 	server.PassSignal(cancel, fileSaveChan, envVariables, s)
-	s.SaveMetricsTypes(cancel, filepath.Join(dir, "metric_types.json"))
+	s.SaveMetricsTypes(cancel, filepath.Join(envVariables.Dir, "metric_types.json"))
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

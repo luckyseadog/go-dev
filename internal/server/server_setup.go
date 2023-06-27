@@ -2,8 +2,10 @@ package server
 
 import (
 	"flag"
+	"github.com/luckyseadog/go-dev/internal/storage"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -14,9 +16,10 @@ type EnvVariables struct {
 	StoreInterval time.Duration
 	StoreFile     string
 	Restore       bool
+	Dir           string
 }
 
-func SetUp() *EnvVariables {
+func SetUp(s storage.Storage) *EnvVariables {
 	var addressFlag string
 	var storeIntervalStrFlag string
 	var storeFileFlag string
@@ -35,8 +38,6 @@ func SetUp() *EnvVariables {
 		}
 		address = addressFlag
 	}
-
-	log.Println(address)
 
 	var storeInterval time.Duration
 	storeIntervalStr := os.Getenv("STORE_INTERVAL")
@@ -75,6 +76,33 @@ func SetUp() *EnvVariables {
 		}
 	}
 
-	return &EnvVariables{Address: address, StoreInterval: storeInterval, StoreFile: storeFile, Restore: restore}
+	envVariables := &EnvVariables{Address: address,
+		StoreInterval: storeInterval,
+		StoreFile:     storeFile,
+		Restore:       restore,
+		Dir:           filepath.Dir(storeFile)}
+
+	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {
+		err := os.Mkdir(envVariables.Dir, 0777)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	err := s.LoadMetricsTypes(filepath.Join(envVariables.Dir, "metric_types.json"))
+	if err != nil {
+		log.Println(err)
+	}
+
+	if envVariables.Restore {
+		if _, err := os.Stat(envVariables.StoreFile); err == nil {
+			err := s.LoadFromFile(envVariables.StoreFile)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
+
+	return envVariables
 
 }

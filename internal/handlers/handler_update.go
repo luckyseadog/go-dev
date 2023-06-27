@@ -11,7 +11,6 @@ import (
 )
 
 func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
-	//log.Println(StorageVar)
 	if r.Method != http.MethodPost {
 		http.Error(w, "HandlerUpdate: Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
