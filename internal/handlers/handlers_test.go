@@ -43,10 +43,10 @@ func TestHandlerDefault(t *testing.T) {
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			HandlerValueJSON(w, r, s)
+			HandlerValueJSON(w, r, s, []byte{})
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			HandlerValueJSON(w, r, s)
+			HandlerValueJSON(w, r, s, []byte{})
 		})
 	})
 
@@ -139,10 +139,10 @@ func TestHandlerUpdate(t *testing.T) {
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			HandlerValueJSON(w, r, s)
+			HandlerValueJSON(w, r, s, []byte{})
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			HandlerValueJSON(w, r, s)
+			HandlerValueJSON(w, r, s, []byte{})
 		})
 	})
 

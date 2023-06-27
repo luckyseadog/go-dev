@@ -39,10 +39,10 @@ func main() {
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerValueJSON(w, r, s)
+			handlers.HandlerValueJSON(w, r, s, envVariables.SecretKey)
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerValueJSON(w, r, s)
+			handlers.HandlerValueJSON(w, r, s, envVariables.SecretKey)
 		})
 	})
 
