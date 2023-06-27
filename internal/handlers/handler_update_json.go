@@ -3,10 +3,12 @@ package handlers
 import (
 	"compress/gzip"
 	"crypto/hmac"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/luckyseadog/go-dev/internal/security"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
@@ -63,7 +65,15 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 			if len(key) > 0 {
 				computedHash := security.Hash(fmt.Sprintf("%s:gauge:%f", metric.ID, *metric.Value), key)
-				if !hmac.Equal([]byte(computedHash), []byte(metric.Hash)) {
+				decodedComputedHash, err := hex.DecodeString(computedHash)
+				if err != nil {
+					log.Println(err)
+				}
+				decodedMetricHash, err := hex.DecodeString(metric.Hash)
+				if err != nil {
+					log.Println(err)
+				}
+				if !hmac.Equal(decodedComputedHash, decodedMetricHash) {
 					w.WriteHeader(http.StatusBadRequest)
 					return
 				}
@@ -82,8 +92,18 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 			}
 
 			if len(key) > 0 {
+				//fmt.Println(fmt.Sprintf("%s:counter:%d", string(key), *metric.Delta))
+				//fmt.Println(key)
 				computedHash := security.Hash(fmt.Sprintf("%s:counter:%d", metric.ID, *metric.Delta), key)
-				if !hmac.Equal([]byte(computedHash), []byte(metric.Hash)) {
+				decodedComputedHash, err := hex.DecodeString(computedHash)
+				if err != nil {
+					log.Println(err)
+				}
+				decodedMetricHash, err := hex.DecodeString(metric.Hash)
+				if err != nil {
+					log.Println(err)
+				}
+				if !hmac.Equal(decodedComputedHash, decodedMetricHash) {
 					w.WriteHeader(http.StatusBadRequest)
 					return
 				}

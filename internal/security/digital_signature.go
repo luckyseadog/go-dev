@@ -3,6 +3,7 @@ package security
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 )
 
 func Hash(data string, key []byte) string {
@@ -10,5 +11,5 @@ func Hash(data string, key []byte) string {
 	h.Write([]byte(data))
 	sign := h.Sum(nil)
 
-	return string(sign)
+	return hex.EncodeToString(sign)
 }
