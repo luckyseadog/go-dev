@@ -55,10 +55,10 @@ func TestHandlerDefault(t *testing.T) {
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			HandlerUpdateJSON(w, r, s)
+			HandlerUpdateJSON(w, r, s, []byte{})
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			HandlerUpdateJSON(w, r, s)
+			HandlerUpdateJSON(w, r, s, []byte{})
 		})
 	})
 
@@ -151,10 +151,10 @@ func TestHandlerUpdate(t *testing.T) {
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			HandlerUpdateJSON(w, r, s)
+			HandlerUpdateJSON(w, r, s, []byte{})
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			HandlerUpdateJSON(w, r, s)
+			HandlerUpdateJSON(w, r, s, []byte{})
 		})
 	})
 
@@ -199,7 +199,7 @@ func TestHandlerUpdateJSON(t *testing.T) {
 			for idx, body := range tt.bodies {
 				w := httptest.NewRecorder()
 				r := httptest.NewRequest("POST", "/update/", bytes.NewBuffer(body))
-				HandlerUpdateJSON(w, r, s)
+				HandlerUpdateJSON(w, r, s, []byte{})
 
 				require.Equal(t, http.StatusOK, w.Code)
 				require.Equal(t, tt.answerGauge[idx], s.DataGauge["Alloc1"])

@@ -51,7 +51,7 @@ func main() {
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerUpdateJSON(w, r, s)
+			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
 			select {
 			case <-fileSaveChan:
 				err := s.SaveToFile(envVariables.StoreFile)
@@ -62,7 +62,7 @@ func main() {
 			}
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerUpdateJSON(w, r, s)
+			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
 			select {
 			case <-fileSaveChan:
 				err := s.SaveToFile(envVariables.StoreFile)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/luckyseadog/go-dev/internal/security"
 	"io"
 	"log"
 	"math/rand"
@@ -53,11 +54,27 @@ func (a *Agent) PostStats() {
 
 			for key, value := range metricsGauge {
 				valueFloat64 := float64(value)
-				metricsCurrent = append(metricsCurrent, metrics.Metrics{ID: string(key), MType: "gauge", Value: &valueFloat64})
+
+				var metricHash string
+				if len(a.ruler.secretKey) > 0 {
+					metricHash = security.Hash(fmt.Sprintf("%s:gauge:%f", string(key), valueFloat64), a.ruler.secretKey)
+				}
+				metricsCurrent = append(
+					metricsCurrent,
+					metrics.Metrics{ID: string(key), MType: "gauge", Value: &valueFloat64, Hash: metricHash},
+				)
 			}
 			for key, value := range metricsCounter {
 				valueInt64 := int64(value)
-				metricsCurrent = append(metricsCurrent, metrics.Metrics{ID: string(key), MType: "counter", Delta: &valueInt64})
+
+				var metricHash string
+				if len(a.ruler.secretKey) > 0 {
+					metricHash = security.Hash(fmt.Sprintf("%s:counter:%d", string(key), valueInt64), a.ruler.secretKey)
+				}
+				metricsCurrent = append(
+					metricsCurrent,
+					metrics.Metrics{ID: string(key), MType: "counter", Delta: &valueInt64, Hash: metricHash},
+				)
 			}
 
 			data, err := json.Marshal(metricsCurrent)
