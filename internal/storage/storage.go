@@ -20,8 +20,6 @@ type Storage interface {
 
 	SaveToFile(filepath string) error
 	LoadFromFile(filepath string) error
-	SaveMetricsTypes(cancelChan chan struct{}, filepath string)
-	LoadMetricsTypes(filepath string) error
 }
 
 type MyStorage struct {
@@ -36,27 +34,15 @@ func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	defer s.mu.Unlock()
 	switch metricValue := metricValue.(type) {
 	case metrics.Gauge:
-		s.muMetric.Lock()
-		metrics.MapMetricTypes[string(metric)] = "Gauge"
-		s.muMetric.Unlock()
 		s.DataGauge[metric] = metricValue
 		return nil
 	case float64:
-		s.muMetric.Lock()
-		metrics.MapMetricTypes[string(metric)] = "Gauge"
-		s.muMetric.Unlock()
 		s.DataGauge[metric] = metrics.Gauge(metricValue)
 		return nil
 	case metrics.Counter:
-		s.muMetric.Lock()
-		metrics.MapMetricTypes[string(metric)] = "Counter"
-		s.muMetric.Unlock()
 		s.DataCounter[metric] += metricValue
 		return nil
 	case int64:
-		s.muMetric.Lock()
-		metrics.MapMetricTypes[string(metric)] = "Counter"
-		s.muMetric.Unlock()
 		s.DataCounter[metric] += metrics.Counter(metricValue)
 		return nil
 	default:
@@ -120,16 +106,19 @@ func (s *MyStorage) SaveToFile(filepath string) error {
 	}
 
 	defer file.Close()
-	copyMetrics := map[metrics.Metric]any{}
+	dataGauge := map[metrics.Metric]metrics.Gauge{}
 	for key, value := range s.DataGauge {
-		copyMetrics[key] = value
+		dataGauge[key] = value
 	}
+	dataCounter := map[metrics.Metric]metrics.Counter{}
 	for key, value := range s.DataCounter {
-		copyMetrics[key] = value
+		dataCounter[key] = value
 	}
 
+	fileData := metrics.FileData{DataGauge: dataGauge, DataCounter: dataCounter}
+
 	writer := bufio.NewWriter(file)
-	data, err := json.Marshal(copyMetrics)
+	data, err := json.Marshal(fileData)
 	if err != nil {
 		return err
 	}
@@ -154,7 +143,7 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 	defer file.Close()
 
 	var lastData []byte
-	var metricsLoaded map[string]float64
+	var fileData metrics.FileData
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		lastData = scanner.Bytes()
@@ -170,22 +159,25 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 		return nil
 	}
 
-	err = json.Unmarshal(lastData, &metricsLoaded)
+	err = json.Unmarshal(lastData, &fileData)
 	if err != nil {
 		return err
 	}
 
-	for key, value := range metricsLoaded {
-		if metrics.MapMetricTypes[key] == "Gauge" {
-			err = s.Store(metrics.Metric(key), value)
-		} else if metrics.MapMetricTypes[key] == "Counter" {
-			err = s.Store(metrics.Metric(key), int64(value))
-		} else {
-			err = s.Store(metrics.Metric(key), value)
+	for key, value := range fileData.DataGauge {
+		err = s.Store(key, value)
+		if err != nil {
+			return err
+		}
+	}
+	for key, value := range fileData.DataCounter {
+		err = s.Store(key, value)
+		if err != nil {
+			return err
 		}
 	}
 
-	return err
+	return nil
 
 }
 

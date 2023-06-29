@@ -4,7 +4,6 @@ import (
 	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"log"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -23,7 +22,6 @@ func main() {
 	defer close(cancel)
 
 	server.PassSignal(cancel, fileSaveChan, envVariables, s)
-	s.SaveMetricsTypes(cancel, filepath.Join(envVariables.Dir, "metric_types.json"))
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

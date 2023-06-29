@@ -99,11 +99,6 @@ func SetUp(s storage.Storage) *EnvVariables {
 		}
 	}
 
-	err := s.LoadMetricsTypes(filepath.Join(envVariables.Dir, "metric_types.json"))
-	if err != nil {
-		log.Println(err)
-	}
-
 	if envVariables.Restore {
 		if _, err := os.Stat(envVariables.StoreFile); err == nil {
 			err := s.LoadFromFile(envVariables.StoreFile)

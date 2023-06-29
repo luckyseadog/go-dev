@@ -49,6 +49,7 @@ func (a *Agent) PostStats() {
 			metricsCounter := map[metrics.Metric]metrics.Counter{
 				metrics.PollCount: a.metrics.PollCount,
 			}
+			a.metrics.PollCount = 0
 			a.mu.Unlock()
 			metricsCurrent := make([]metrics.Metrics, 0)
 
