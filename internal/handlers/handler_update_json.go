@@ -43,17 +43,23 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 		return
 	}
 
-	if body[0] != byte('[') {
-		body = append([]byte{byte('[')}, body...)
-		body = append(body, byte(']'))
-	}
+	//if body[0] != byte('[') {
+	//	body = append([]byte{byte('[')}, body...)
+	//	body = append(body, byte(']'))
+	//}
 
 	metricsCurrent := make([]metrics.Metrics, 0)
 
 	err = json.Unmarshal(body, &metricsCurrent)
 	if err != nil {
-		http.Error(w, "HandlerUpdateJSON: Unmarshal error", http.StatusBadRequest)
-		return
+		var metric metrics.Metrics
+		err = json.Unmarshal(body, &metric)
+		if err != nil {
+			http.Error(w, "HandlerValueJSON: unmarshal error", http.StatusBadRequest)
+			return
+		} else {
+			metricsCurrent = append(metricsCurrent, metric)
+		}
 	}
 
 	for _, metric := range metricsCurrent {
