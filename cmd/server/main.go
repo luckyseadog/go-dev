@@ -1,27 +1,23 @@
 package main
 
 import (
-	"github.com/luckyseadog/go-dev/internal/middlewares"
-	"log"
-	"net/http"
-	"time"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/luckyseadog/go-dev/internal/handlers"
+	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
+	"net/http"
 )
 
 func main() {
 	s := storage.NewStorage()
 	envVariables := server.SetUp(s)
 
-	fileSaveChan := make(chan time.Time)
 	cancel := make(chan struct{})
 	defer close(cancel)
 
-	server.PassSignal(cancel, fileSaveChan, envVariables, s)
+	server.PassSignal(cancel, envVariables, s)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -50,24 +46,14 @@ func main() {
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-			select {
-			case <-fileSaveChan:
-				err := s.SaveToFile(envVariables.StoreFile)
-				if err != nil {
-					log.Println(err)
-				}
-			default:
+			if envVariables.StoreInterval == 0 {
+				go server.SyncUpdate(envVariables, s)
 			}
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
 			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-			select {
-			case <-fileSaveChan:
-				err := s.SaveToFile(envVariables.StoreFile)
-				if err != nil {
-					log.Println(err)
-				}
-			default:
+			if envVariables.StoreInterval == 0 {
+				go server.SyncUpdate(envVariables, s)
 			}
 		})
 	})
