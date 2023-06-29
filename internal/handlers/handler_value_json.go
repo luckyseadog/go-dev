@@ -89,11 +89,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 	}
 
 	w.WriteHeader(http.StatusOK)
-	if len(metricsCurrent) == 1 {
-		_, err = w.Write(jsonData[1 : len(jsonData)-1])
-	} else {
-		_, err = w.Write(jsonData)
-	}
+	_, err = w.Write(jsonData)
 
 	if err != nil {
 		http.Error(w, "HandlerValueJSON: Error in making response", http.StatusInternalServerError)

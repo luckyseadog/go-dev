@@ -150,11 +150,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 	}
 
 	w.WriteHeader(http.StatusOK)
-	if len(metricsAnswer) == 1 {
-		_, err = w.Write(jsonData[1 : len(jsonData)-1])
-	} else {
-		_, err = w.Write(jsonData)
-	}
+	_, err = w.Write(jsonData)
 
 	if err != nil {
 		http.Error(w, "HandlerUpdateJSON: Error in making response", http.StatusInternalServerError)
