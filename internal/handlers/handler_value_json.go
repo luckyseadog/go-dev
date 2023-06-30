@@ -39,12 +39,8 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 		return
 	}
 
+	var isPackData = true
 	metricsCurrent := make([]metrics.Metrics, 0)
-
-	//if body[0] != byte('[') {
-	//	body = append([]byte{byte('[')}, body...)
-	//	body = append(body, byte(']'))
-	//}
 
 	err = json.Unmarshal(body, &metricsCurrent)
 	if err != nil {
@@ -54,6 +50,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 			http.Error(w, "HandlerValueJSON: unmarshal error", http.StatusBadRequest)
 			return
 		} else {
+			isPackData = false
 			metricsCurrent = append(metricsCurrent, metric)
 		}
 	}
@@ -88,18 +85,20 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 			return
 		}
 	}
-	jsonData, err := json.Marshal(metricsCurrent)
+
+	var jsonData []byte
+	if isPackData {
+		jsonData, err = json.Marshal(metricsCurrent)
+	} else {
+		jsonData, err = json.Marshal(metricsCurrent[0])
+	}
+
 	if err != nil {
 		http.Error(w, "HandlerValueJSON: Error in making response", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	//if len(metricsCurrent) == 1 {
-	//	_, err = w.Write(jsonData[1 : len(jsonData)-1])
-	//} else {
-	//	_, err = w.Write(jsonData)
-	//}
 	_, err = w.Write(jsonData)
 
 	if err != nil {
