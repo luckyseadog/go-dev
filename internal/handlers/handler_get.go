@@ -12,6 +12,7 @@ import (
 func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "HandlerDefault: Only GET requests are allowed!", http.StatusMethodNotAllowed)
+		return
 	}
 
 	splitPath := strings.Split(r.URL.Path, "/")

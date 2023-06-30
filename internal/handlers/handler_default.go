@@ -10,6 +10,7 @@ import (
 func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "HandlerDefault: Only GET requests are allowed!", http.StatusMethodNotAllowed)
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/html")

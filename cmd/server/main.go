@@ -1,13 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/luckyseadog/go-dev/internal/handlers"
 	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
+	"log"
 	"net/http"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
@@ -15,6 +19,12 @@ func main() {
 	s := storage.NewStorage(storageChan)
 	envVariables := server.SetUp(s)
 	s.SetUp(envVariables.StoreInterval)
+
+	db, err := sql.Open("pgx", envVariables.DataSourceName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
 	cancel := make(chan struct{})
 	defer close(cancel)
@@ -32,6 +42,9 @@ func main() {
 	})
 	r.Get("/value/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
 		handlers.HandlerGet(w, r, s)
+	})
+	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		handlers.HandlerPing(w, r, db)
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
