@@ -12,12 +12,13 @@ import (
 )
 
 type EnvVariables struct {
-	Address       string
-	StoreInterval time.Duration
-	StoreFile     string
-	Restore       bool
-	Dir           string
-	SecretKey     []byte
+	Address        string
+	StoreInterval  time.Duration
+	StoreFile      string
+	Restore        bool
+	Dir            string
+	SecretKey      []byte
+	DataSourceName string
 }
 
 func SetUp(s storage.Storage) *EnvVariables {
@@ -26,12 +27,14 @@ func SetUp(s storage.Storage) *EnvVariables {
 	var storeFileFlag string
 	var restoreStrFlag string
 	var secretKeyFlag string
+	var dataSourceNameFlag string
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
 	flag.StringVar(&storeFileFlag, "f", "/tmp/devops-metrics-db.json", "file in which we are saving metrics")
 	flag.StringVar(&restoreStrFlag, "r", "true", "if it is needed to load metrics from the past")
 	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
+	flag.StringVar(&dataSourceNameFlag, "d", "postgres://localhost:5432/postgres", "for accessing the underlying datastore")
 	flag.Parse()
 
 	address := os.Getenv("ADDRESS")
@@ -84,12 +87,18 @@ func SetUp(s storage.Storage) *EnvVariables {
 		secretKeyStr = secretKeyFlag
 	}
 
+	dataSourceNameStr := os.Getenv("DATABASE_DSN")
+	if dataSourceNameStr == "" {
+		dataSourceNameStr = dataSourceNameFlag
+	}
+
 	envVariables := &EnvVariables{Address: address,
-		StoreInterval: storeInterval,
-		StoreFile:     storeFile,
-		Restore:       restore,
-		Dir:           filepath.Dir(storeFile),
-		SecretKey:     []byte(secretKeyStr),
+		StoreInterval:  storeInterval,
+		StoreFile:      storeFile,
+		Restore:        restore,
+		Dir:            filepath.Dir(storeFile),
+		SecretKey:      []byte(secretKeyStr),
+		DataSourceName: dataSourceNameStr,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {
