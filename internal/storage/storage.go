@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
@@ -23,15 +24,22 @@ type Storage interface {
 }
 
 type MyStorage struct {
-	DataGauge   map[metrics.Metric]metrics.Gauge
-	DataCounter map[metrics.Metric]metrics.Counter
-	mu          sync.RWMutex
-	muMetric    sync.Mutex
+	DataGauge     map[metrics.Metric]metrics.Gauge
+	DataCounter   map[metrics.Metric]metrics.Counter
+	mu            sync.RWMutex
+	muMetric      sync.Mutex
+	storageChan   chan struct{}
+	storeInterval time.Duration
 }
 
 func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	defer func() {
+		s.mu.Unlock()
+		if s.storeInterval == 0 {
+			s.storageChan <- struct{}{}
+		}
+	}()
 	switch metricValue := metricValue.(type) {
 	case metrics.Gauge:
 		s.DataGauge[metric] = metricValue
@@ -181,8 +189,12 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 
 }
 
-func NewStorage() *MyStorage {
+func (s *MyStorage) SetUp(storeInterval time.Duration) {
+	s.storeInterval = storeInterval
+}
+
+func NewStorage(storageChan chan struct{}) *MyStorage {
 	dataGauge := map[metrics.Metric]metrics.Gauge{}
 	dataCounter := map[metrics.Metric]metrics.Counter{}
-	return &MyStorage{DataGauge: dataGauge, DataCounter: dataCounter, mu: sync.RWMutex{}}
+	return &MyStorage{DataGauge: dataGauge, DataCounter: dataCounter, mu: sync.RWMutex{}, storageChan: storageChan, storeInterval: time.Second}
 }

@@ -23,8 +23,7 @@ func (a *Agent) GetStats() {
 		select {
 		case <-a.cancel:
 			return
-		default:
-			<-ticker.C
+		case <-ticker.C:
 			a.mu.Lock()
 			runtime.ReadMemStats(&a.metrics.MemStats)
 			a.metrics.RandomValue = metrics.Gauge(rand.Float64())
@@ -41,8 +40,7 @@ func (a *Agent) PostStats() {
 		select {
 		case <-a.cancel:
 			return
-		default:
-			<-ticker.C
+		case <-ticker.C:
 			a.mu.Lock()
 			metricsGauge := metrics.GetMetrics(a.metrics.MemStats)
 			metricsGauge[metrics.RandomValue] = a.metrics.RandomValue

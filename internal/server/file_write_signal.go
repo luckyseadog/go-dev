@@ -7,7 +7,7 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func PassSignal(cancelChan chan struct{}, envVariables *EnvVariables, storage storage.Storage) {
+func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, storage storage.Storage) {
 	if envVariables.StoreInterval > 0 {
 		backUpTicker := time.NewTicker(envVariables.StoreInterval)
 		go func() {
@@ -24,12 +24,26 @@ func PassSignal(cancelChan chan struct{}, envVariables *EnvVariables, storage st
 				}
 			}
 		}()
+	} else {
+		go func() {
+			for {
+				select {
+				case <-chanStorage:
+					err := storage.SaveToFile(envVariables.StoreFile)
+					if err != nil {
+						log.Println(err)
+					}
+				case <-cancelChan:
+					return
+				}
+			}
+		}()
 	}
 }
 
-func SyncUpdate(envVariables *EnvVariables, storage storage.Storage) {
-	err := storage.SaveToFile(envVariables.StoreFile)
-	if err != nil {
-		log.Println(err)
-	}
-}
+//func SyncUpdate(envVariables *EnvVariables, storage storage.Storage) {
+//	err := storage.SaveToFile(envVariables.StoreFile)
+//	if err != nil {
+//		log.Println(err)
+//	}
+//}

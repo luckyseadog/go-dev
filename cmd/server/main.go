@@ -11,13 +11,15 @@ import (
 )
 
 func main() {
-	s := storage.NewStorage()
+	storageChan := make(chan struct{})
+	s := storage.NewStorage(storageChan)
 	envVariables := server.SetUp(s)
+	s.SetUp(envVariables.StoreInterval)
 
 	cancel := make(chan struct{})
 	defer close(cancel)
 
-	server.PassSignal(cancel, envVariables, s)
+	server.PassSignal(cancel, storageChan, envVariables, s)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -46,15 +48,15 @@ func main() {
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-			if envVariables.StoreInterval == 0 {
-				go server.SyncUpdate(envVariables, s)
-			}
+			//if envVariables.StoreInterval == 0 {
+			//	go server.SyncUpdate(envVariables, s)
+			//}
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
 			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-			if envVariables.StoreInterval == 0 {
-				go server.SyncUpdate(envVariables, s)
-			}
+			//if envVariables.StoreInterval == 0 {
+			//	go server.SyncUpdate(envVariables, s)
+			//}
 		})
 	})
 
