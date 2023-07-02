@@ -2,7 +2,6 @@ package server
 
 import (
 	"flag"
-	"github.com/luckyseadog/go-dev/internal/storage"
 	"log"
 	"os"
 	"path/filepath"
@@ -21,7 +20,7 @@ type EnvVariables struct {
 	DataSourceName string
 }
 
-func SetUp(s storage.Storage) *EnvVariables {
+func SetUp() *EnvVariables {
 	var addressFlag string
 	var storeIntervalStrFlag string
 	var storeFileFlag string
@@ -105,15 +104,6 @@ func SetUp(s storage.Storage) *EnvVariables {
 		err := os.Mkdir(envVariables.Dir, 0777)
 		if err != nil {
 			log.Fatal(err)
-		}
-	}
-
-	if envVariables.Restore {
-		if _, err := os.Stat(envVariables.StoreFile); err == nil {
-			err := s.LoadFromFile(envVariables.StoreFile)
-			if err != nil {
-				log.Println(err)
-			}
 		}
 	}
 

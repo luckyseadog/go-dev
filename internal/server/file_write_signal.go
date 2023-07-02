@@ -40,10 +40,3 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 		}()
 	}
 }
-
-//func SyncUpdate(envVariables *EnvVariables, storage storage.Storage) {
-//	err := storage.SaveToFile(envVariables.StoreFile)
-//	if err != nil {
-//		log.Println(err)
-//	}
-//}

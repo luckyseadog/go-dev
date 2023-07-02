@@ -4,9 +4,10 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal/security"
 	"io"
 	"net/http"
+
+	"github.com/luckyseadog/go-dev/internal/security"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/storage"

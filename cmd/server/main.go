@@ -2,23 +2,33 @@ package main
 
 import (
 	"database/sql"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/luckyseadog/go-dev/internal/handlers"
 	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
-	"log"
-	"net/http"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
+	envVariables := server.SetUp()
+
 	storageChan := make(chan struct{})
-	s := storage.NewStorage(storageChan)
-	envVariables := server.SetUp(s)
-	s.SetUp(envVariables.StoreInterval)
+	s := storage.NewStorage(storageChan, envVariables.StoreInterval)
+	if envVariables.Restore {
+		if _, err := os.Stat(envVariables.StoreFile); err == nil {
+			err := s.LoadFromFile(envVariables.StoreFile)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
 
 	db, err := sql.Open("pgx", envVariables.DataSourceName)
 	if err != nil {
@@ -61,15 +71,9 @@ func main() {
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-			//if envVariables.StoreInterval == 0 {
-			//	go server.SyncUpdate(envVariables, s)
-			//}
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
 			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-			//if envVariables.StoreInterval == 0 {
-			//	go server.SyncUpdate(envVariables, s)
-			//}
 		})
 	})
 
