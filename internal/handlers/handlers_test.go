@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/storage"
@@ -33,7 +34,7 @@ func TestHandlerDefault(t *testing.T) {
 			want:    "<html><body><p>a</p><p>c</p></body></html>",
 		},
 	}
-	s := storage.NewStorage(nil)
+	s := storage.NewStorage(nil, time.Second)
 	r := chi.NewRouter()
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		HandlerDefault(w, r, s)
@@ -129,7 +130,7 @@ func TestHandlerUpdate(t *testing.T) {
 			request: "http://127.0.0.1:8080/update/gauge/",
 		},
 	}
-	s := storage.NewStorage(nil)
+	s := storage.NewStorage(nil, time.Second)
 	r := chi.NewRouter()
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		HandlerDefault(w, r, s)
@@ -192,7 +193,7 @@ func TestHandlerUpdateJSON(t *testing.T) {
 			answerCounter: []metrics.Counter{1, 3},
 		},
 	}
-	s := storage.NewStorage(nil)
+	s := storage.NewStorage(nil, time.Second)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
