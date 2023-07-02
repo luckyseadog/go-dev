@@ -13,6 +13,11 @@ import (
 
 var errNotExpectedType = errors.New("not expected type")
 
+type AutoSavingParams struct {
+	storageChan   chan struct{}
+	storeInterval time.Duration
+}
+
 type Storage interface {
 	Store(metric metrics.Metric, metricValue any) error
 	Load(metricType string, metric metrics.Metric) (any, error)
@@ -24,20 +29,19 @@ type Storage interface {
 }
 
 type MyStorage struct {
-	DataGauge     map[metrics.Metric]metrics.Gauge
-	DataCounter   map[metrics.Metric]metrics.Counter
-	mu            sync.RWMutex
-	muMetric      sync.Mutex
-	storageChan   chan struct{}
-	storeInterval time.Duration
+	DataGauge   map[metrics.Metric]metrics.Gauge
+	DataCounter map[metrics.Metric]metrics.Counter
+	mu          sync.RWMutex
+
+	autoSavingParams AutoSavingParams
 }
 
 func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	s.mu.Lock()
 	defer func() {
 		s.mu.Unlock()
-		if s.storeInterval == 0 {
-			s.storageChan <- struct{}{}
+		if s.autoSavingParams.storeInterval == 0 {
+			s.autoSavingParams.storageChan <- struct{}{}
 		}
 	}()
 	switch metricValue := metricValue.(type) {
@@ -189,12 +193,16 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 
 }
 
-func (s *MyStorage) SetUp(storeInterval time.Duration) {
-	s.storeInterval = storeInterval
-}
-
-func NewStorage(storageChan chan struct{}) *MyStorage {
+func NewStorage(storageChan chan struct{}, storeInterval time.Duration) *MyStorage {
 	dataGauge := map[metrics.Metric]metrics.Gauge{}
 	dataCounter := map[metrics.Metric]metrics.Counter{}
-	return &MyStorage{DataGauge: dataGauge, DataCounter: dataCounter, mu: sync.RWMutex{}, storageChan: storageChan, storeInterval: time.Second}
+	return &MyStorage{
+		DataGauge:   dataGauge,
+		DataCounter: dataCounter,
+		mu:          sync.RWMutex{},
+		autoSavingParams: AutoSavingParams{
+			storageChan:   storageChan,
+			storeInterval: storeInterval,
+		},
+	}
 }

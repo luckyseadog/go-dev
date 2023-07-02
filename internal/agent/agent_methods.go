@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal/security"
 	"io"
 	"log"
 	"math/rand"
@@ -13,6 +12,8 @@ import (
 	"net/url"
 	"runtime"
 	"time"
+
+	"github.com/luckyseadog/go-dev/internal/security"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
