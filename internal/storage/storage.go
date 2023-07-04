@@ -277,7 +277,7 @@ func CreateTables(db *sql.DB) error {
 
 	_, err = db.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS counter (
 				  metric VARCHAR(100),
-				  val INTEGER
+				  val BIGINT
 				)`)
 	if err != nil {
 		return err
