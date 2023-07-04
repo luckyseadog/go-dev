@@ -270,7 +270,7 @@ func (s *MyStorage) LoadFromDB(db *sql.DB) error {
 func CreateTables(db *sql.DB) error {
 	query := `CREATE TABLE IF NOT EXISTS %s (
 				  metric VARCHAR(100),
-				  val DECIMAL
+				  val DOUBLE PRECISION
 				)`
 	_, err := db.ExecContext(context.Background(), fmt.Sprintf(query, "gauge"))
 	if err != nil {

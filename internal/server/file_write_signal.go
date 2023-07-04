@@ -16,20 +16,16 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 			for {
 				select {
 				case <-backUpTicker.C:
-					//if envVariables.DataSourceName != "" {
-					//	err := storage.SaveToDB(db)
-					//	if err != nil {
-					//		log.Println(err)
-					//	}
-					//} else {
-					//	err := storage.SaveToFile(envVariables.StoreFile)
-					//	if err != nil {
-					//		log.Println(err)
-					//	}
-					//}
-					err := storage.SaveToFile(envVariables.StoreFile)
-					if err != nil {
-						log.Println(err)
+					if envVariables.DataSourceName != "" {
+						err := storage.SaveToDB(db)
+						if err != nil {
+							log.Println(err)
+						}
+					} else {
+						err := storage.SaveToFile(envVariables.StoreFile)
+						if err != nil {
+							log.Println(err)
+						}
 					}
 				case <-cancelChan:
 					return
@@ -41,20 +37,16 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 			for {
 				select {
 				case <-chanStorage:
-					//if envVariables.DataSourceName != "" {
-					//	err := storage.SaveToDB(db)
-					//	if err != nil {
-					//		log.Println(err)
-					//	}
-					//} else {
-					//	err := storage.SaveToFile(envVariables.StoreFile)
-					//	if err != nil {
-					//		log.Println(err)
-					//	}
-					//}
-					err := storage.SaveToFile(envVariables.StoreFile)
-					if err != nil {
-						log.Println(err)
+					if envVariables.DataSourceName != "" {
+						err := storage.SaveToDB(db)
+						if err != nil {
+							log.Println(err)
+						}
+					} else {
+						err := storage.SaveToFile(envVariables.StoreFile)
+						if err != nil {
+							log.Println(err)
+						}
 					}
 				case <-cancelChan:
 					return
