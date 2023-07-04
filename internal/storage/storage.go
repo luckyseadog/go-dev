@@ -235,6 +235,10 @@ func (s *MyStorage) LoadFromDB(db *sql.DB) error {
 		}
 	}
 
+	if rowsGauge.Err() != nil {
+		return rowsGauge.Err()
+	}
+
 	rowsCounter, err := db.QueryContext(context.Background(), `SELECT metric, val FROM counter`)
 	if err != nil {
 		return err
@@ -252,6 +256,10 @@ func (s *MyStorage) LoadFromDB(db *sql.DB) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if rowsCounter.Err() != nil {
+		return rowsCounter.Err()
 	}
 
 	return nil
