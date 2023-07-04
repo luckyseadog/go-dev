@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
-	"log"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -24,8 +26,8 @@ type Storage interface {
 	LoadDataGauge() map[metrics.Metric]metrics.Gauge
 	LoadDataCounter() map[metrics.Metric]metrics.Counter
 
-	SaveToFile(filepath string) error
-	LoadFromFile(filepath string) error
+	//SaveToFile(filepath string) error
+	//LoadFromFile(filepath string) error
 }
 
 type MyStorage struct {
@@ -137,6 +139,26 @@ func (s *MyStorage) SaveToFile(filepath string) error {
 	return nil
 }
 
+func (s *MyStorage) SaveToDB(db *sql.DB) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for metric, val := range s.DataGauge {
+		_, err := db.ExecContext(context.Background(), `INSERT INTO gauge(metric, val) VALUES($1, $2)`, metric, val)
+		if err != nil {
+			return err
+		}
+	}
+
+	for metric, val := range s.DataCounter {
+		_, err := db.ExecContext(context.Background(), `INSERT INTO counter(metric, val) VALUES($1, $2)`, metric, val)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *MyStorage) LoadFromFile(filepath string) error {
 	s.mu.Lock()
 
@@ -171,7 +193,65 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 	}
 
 	return nil
+}
 
+func (s *MyStorage) LoadFromDB(db *sql.DB) error {
+	rowsGauge, err := db.QueryContext(context.Background(), `SELECT metric, val FROM gauge`)
+	if err != nil {
+		return err
+	}
+
+	for rowsGauge.Next() {
+		var metric metrics.Metric
+		var val metrics.Gauge
+
+		err = rowsGauge.Scan(&metric, &val)
+		if err != nil {
+			return err
+		}
+		err = s.Store(metric, val)
+		if err != nil {
+			return err
+		}
+	}
+
+	rowsCounter, err := db.QueryContext(context.Background(), `SELECT metric, val FROM counter`)
+	if err != nil {
+		return err
+	}
+
+	for rowsCounter.Next() {
+		var metric metrics.Metric
+		var val metrics.Counter
+
+		err = rowsCounter.Scan(&metric, &val)
+		if err != nil {
+			return err
+		}
+		err = s.Store(metric, val)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CreateTables(db *sql.DB) error {
+	query := `CREATE TABLE IF NOT EXISTS %s (
+				  metric VARCHAR(100),
+				  val DECIMAL
+				)`
+	_, err := db.ExecContext(context.Background(), fmt.Sprintf(query, "gauge"))
+	if err != nil {
+		return err
+	}
+
+	_, err = db.ExecContext(context.Background(), fmt.Sprintf(query, "counter"))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func NewStorage(storageChan chan struct{}, storeInterval time.Duration) *MyStorage {

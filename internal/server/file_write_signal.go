@@ -1,13 +1,14 @@
 package server
 
 import (
+	"database/sql"
 	"log"
 	"time"
 
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, storage storage.Storage) {
+func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, storage *storage.MyStorage, db *sql.DB) {
 	if envVariables.StoreInterval > 0 {
 		backUpTicker := time.NewTicker(envVariables.StoreInterval)
 		go func() {
@@ -15,9 +16,16 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 			for {
 				select {
 				case <-backUpTicker.C:
-					err := storage.SaveToFile(envVariables.StoreFile)
-					if err != nil {
-						log.Println(err)
+					if envVariables.DataSourceName != "" {
+						err := storage.SaveToDB(db)
+						if err != nil {
+							log.Println(err)
+						}
+					} else {
+						err := storage.SaveToFile(envVariables.StoreFile)
+						if err != nil {
+							log.Println(err)
+						}
 					}
 				case <-cancelChan:
 					return
@@ -29,9 +37,16 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 			for {
 				select {
 				case <-chanStorage:
-					err := storage.SaveToFile(envVariables.StoreFile)
-					if err != nil {
-						log.Println(err)
+					if envVariables.DataSourceName != "" {
+						err := storage.SaveToDB(db)
+						if err != nil {
+							log.Println(err)
+						}
+					} else {
+						err := storage.SaveToFile(envVariables.StoreFile)
+						if err != nil {
+							log.Println(err)
+						}
 					}
 				case <-cancelChan:
 					return
