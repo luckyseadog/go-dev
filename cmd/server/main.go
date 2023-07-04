@@ -29,11 +29,11 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer db.Close()
 		err = storage.CreateTables(db)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer db.Close()
 	}
 
 	if envVariables.Restore {
