@@ -152,15 +152,22 @@ func (s *MyStorage) SaveToDB(db *sql.DB) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	query := `
+        INSERT INTO gauge (metric, val)
+        VALUES ($1, $2)
+        ON CONFLICT (metric)
+        DO UPDATE SET gauge.val = EXCLUDED.val;
+    `
+
 	for metric, val := range s.DataGauge {
-		_, err := db.ExecContext(context.Background(), `INSERT INTO gauge(metric, val) VALUES($1, $2)`, metric, val)
+		_, err := db.ExecContext(context.Background(), query, metric, val)
 		if err != nil {
 			return err
 		}
 	}
 
 	for metric, val := range s.DataCounter {
-		_, err := db.ExecContext(context.Background(), `INSERT INTO counter(metric, val) VALUES($1, $2)`, metric, val)
+		_, err := db.ExecContext(context.Background(), query, metric, val)
 		if err != nil {
 			return err
 		}
@@ -268,7 +275,7 @@ func (s *MyStorage) LoadFromDB(db *sql.DB) error {
 
 func CreateTables(db *sql.DB) error {
 	_, err := db.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS gauge (
-				  metric VARCHAR(100),
+				  metric VARCHAR(100) UNIQUE,
 				  val DOUBLE PRECISION
 				)`)
 	if err != nil {
@@ -276,7 +283,7 @@ func CreateTables(db *sql.DB) error {
 	}
 
 	_, err = db.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS counter (
-				  metric VARCHAR(100),
+				  metric VARCHAR(100) UNIQUE,
 				  val BIGINT
 				)`)
 	if err != nil {
