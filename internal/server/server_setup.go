@@ -33,7 +33,7 @@ func SetUp() *EnvVariables {
 	flag.StringVar(&storeFileFlag, "f", "/tmp/devops-metrics-db.json", "file in which we are saving metrics")
 	flag.StringVar(&restoreStrFlag, "r", "true", "if it is needed to load metrics from the past")
 	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
-	flag.StringVar(&dataSourceNameFlag, "d", "postgres://localhost:5432/postgres", "for accessing the underlying datastore")
+	flag.StringVar(&dataSourceNameFlag, "d", "", "for accessing the underlying datastore")
 	flag.Parse()
 
 	address := os.Getenv("ADDRESS")
