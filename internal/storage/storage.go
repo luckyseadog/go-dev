@@ -144,22 +144,29 @@ func (s *MyStorage) SaveToDB(db *sql.DB) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	query := `
+	queryGauge := `
        INSERT INTO gauge (metric, val)
        VALUES ($1, $2)
        ON CONFLICT (metric)
-       DO UPDATE SET gauge.val = EXCLUDED.val;
+       DO UPDATE SET val = EXCLUDED.val;
    `
 
 	for metric, val := range s.DataGauge {
-		_, err := db.ExecContext(context.Background(), query, metric, val)
+		_, err := db.ExecContext(context.Background(), queryGauge, metric, val)
 		if err != nil {
 			return err
 		}
 	}
 
+	queryCounter := `
+       INSERT INTO counter (metric, val)
+       VALUES ($1, $2)
+       ON CONFLICT (metric)
+       DO UPDATE SET val = EXCLUDED.val;
+   `
+
 	for metric, val := range s.DataCounter {
-		_, err := db.ExecContext(context.Background(), query, metric, val)
+		_, err := db.ExecContext(context.Background(), queryCounter, metric, val)
 		if err != nil {
 			return err
 		}
