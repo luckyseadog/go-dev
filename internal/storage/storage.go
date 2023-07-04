@@ -208,6 +208,7 @@ func (s *MyStorage) LoadFromDB(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
+	defer rowsGauge.Close()
 
 	for rowsGauge.Next() {
 		var metric metrics.Metric
@@ -231,6 +232,7 @@ func (s *MyStorage) LoadFromDB(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
+	defer rowsCounter.Close()
 
 	for rowsCounter.Next() {
 		var metric metrics.Metric
