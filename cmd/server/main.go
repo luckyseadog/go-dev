@@ -37,17 +37,15 @@ func main() {
 	}
 
 	if envVariables.Restore {
-		if _, err := os.Stat(envVariables.StoreFile); err == nil {
-			if envVariables.DataSourceName != "" {
-				err := s.LoadFromDB(db)
-				if err != nil {
-					log.Println(err)
-				}
-			} else {
-				err := s.LoadFromFile(envVariables.StoreFile)
-				if err != nil {
-					log.Println(err)
-				}
+		if envVariables.DataSourceName != "" {
+			err := s.LoadFromDB(db)
+			if err != nil {
+				log.Println(err)
+			}
+		} else if _, err := os.Stat(envVariables.StoreFile); err == nil {
+			err := s.LoadFromFile(envVariables.StoreFile)
+			if err != nil {
+				log.Println(err)
 			}
 		}
 	}
