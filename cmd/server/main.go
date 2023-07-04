@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -36,8 +35,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-
-	fmt.Println("HERE:", envVariables.DataSourceName)
 
 	if envVariables.Restore {
 		if envVariables.DataSourceName != "" {
