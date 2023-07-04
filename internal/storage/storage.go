@@ -145,11 +145,11 @@ func (s *MyStorage) SaveToDB(db *sql.DB) error {
 	defer s.mu.Unlock()
 
 	query := `
-        INSERT INTO gauge (metric, val)
-        VALUES ($1, $2)
-        ON CONFLICT (metric)
-        DO UPDATE SET gauge.val = EXCLUDED.val;
-    `
+       INSERT INTO gauge (metric, val)
+       VALUES ($1, $2)
+       ON CONFLICT (metric)
+       DO UPDATE SET gauge.val = EXCLUDED.val;
+   `
 
 	for metric, val := range s.DataGauge {
 		_, err := db.ExecContext(context.Background(), query, metric, val)
