@@ -26,8 +26,10 @@ type Storage interface {
 	LoadDataGauge() map[metrics.Metric]metrics.Gauge
 	LoadDataCounter() map[metrics.Metric]metrics.Counter
 
-	//SaveToFile(filepath string) error
-	//LoadFromFile(filepath string) error
+	SaveToFile(filepath string) error
+	LoadFromFile(filepath string) error
+	SaveToDB(db *sql.DB) error
+	LoadFromDB(db *sql.DB) error
 }
 
 type MyStorage struct {

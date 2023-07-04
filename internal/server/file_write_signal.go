@@ -8,7 +8,7 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, storage *storage.MyStorage, db *sql.DB) {
+func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, storage storage.Storage, db *sql.DB) {
 	if envVariables.StoreInterval > 0 {
 		backUpTicker := time.NewTicker(envVariables.StoreInterval)
 		go func() {
