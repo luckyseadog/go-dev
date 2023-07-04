@@ -21,25 +21,41 @@ func main() {
 
 	storageChan := make(chan struct{})
 	s := storage.NewStorage(storageChan, envVariables.StoreInterval)
+
+	var db *sql.DB
+	if envVariables.DataSourceName != "" {
+		var err error
+		db, err = sql.Open("pgx", envVariables.DataSourceName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = storage.CreateTables(db)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+	}
+
 	if envVariables.Restore {
 		if _, err := os.Stat(envVariables.StoreFile); err == nil {
-			err := s.LoadFromFile(envVariables.StoreFile)
-			if err != nil {
-				log.Println(err)
+			if envVariables.DataSourceName != "" {
+				err := s.LoadFromDB(db)
+				if err != nil {
+					log.Println(err)
+				}
+			} else {
+				err := s.LoadFromFile(envVariables.StoreFile)
+				if err != nil {
+					log.Println(err)
+				}
 			}
 		}
 	}
 
-	db, err := sql.Open("pgx", envVariables.DataSourceName)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	cancel := make(chan struct{})
 	defer close(cancel)
 
-	server.PassSignal(cancel, storageChan, envVariables, s)
+	server.PassSignal(cancel, storageChan, envVariables, s, db)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
