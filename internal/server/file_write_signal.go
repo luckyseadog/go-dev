@@ -1,14 +1,14 @@
 package server
 
 import (
-	"database/sql"
+	"errors"
 	"log"
 	"time"
 
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, storage storage.Storage, db *sql.DB) {
+func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, s storage.Storage) {
 	if envVariables.StoreInterval > 0 {
 		backUpTicker := time.NewTicker(envVariables.StoreInterval)
 		go func() {
@@ -16,15 +16,14 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 			for {
 				select {
 				case <-backUpTicker.C:
-					if envVariables.DataSourceName != "" {
-						err := storage.SaveToDB(db)
-						if err != nil {
-							log.Println(err)
-						}
-					} else {
-						err := storage.SaveToFile(envVariables.StoreFile)
-						if err != nil {
-							log.Println(err)
+					if envVariables.DataSourceName == "" {
+						if ms, ok := s.(*storage.MyStorage); ok {
+							err := ms.SaveToFile(envVariables.StoreFile)
+							if err != nil {
+								log.Println(err)
+							}
+						} else {
+							log.Fatal(errors.New("database is not of type MyStorage"))
 						}
 					}
 				case <-cancelChan:
@@ -37,15 +36,14 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 			for {
 				select {
 				case <-chanStorage:
-					if envVariables.DataSourceName != "" {
-						err := storage.SaveToDB(db)
-						if err != nil {
-							log.Println(err)
-						}
-					} else {
-						err := storage.SaveToFile(envVariables.StoreFile)
-						if err != nil {
-							log.Println(err)
+					if envVariables.DataSourceName == "" {
+						if ms, ok := s.(*storage.MyStorage); ok {
+							err := ms.SaveToFile(envVariables.StoreFile)
+							if err != nil {
+								log.Println(err)
+							}
+						} else {
+							log.Fatal(errors.New("database is not of type MyStorage"))
 						}
 					}
 				case <-cancelChan:

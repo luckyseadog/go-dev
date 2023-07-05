@@ -20,14 +20,27 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Stor
 		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 		return
 	}
-	for key := range storage.LoadDataGauge() {
+
+	dataGauge, err := storage.LoadDataGauge()
+	if err != nil {
+		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
+		return
+	}
+	for key := range dataGauge {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 			return
 		}
 	}
-	for key := range storage.LoadDataCounter() {
+
+	dataCounter, err := storage.LoadDataCounter()
+	if err != nil {
+		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
+		return
+	}
+
+	for key := range dataCounter {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)

@@ -2,8 +2,6 @@ package storage
 
 import (
 	"bufio"
-	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"os"
@@ -23,13 +21,13 @@ type AutoSavingParams struct {
 type Storage interface {
 	Store(metric metrics.Metric, metricValue any) error
 	Load(metricType string, metric metrics.Metric) (any, error)
-	LoadDataGauge() map[metrics.Metric]metrics.Gauge
-	LoadDataCounter() map[metrics.Metric]metrics.Counter
+	LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error)
+	LoadDataCounter() (map[metrics.Metric]metrics.Counter, error)
 
-	SaveToFile(filepath string) error
-	LoadFromFile(filepath string) error
-	SaveToDB(db *sql.DB) error
-	LoadFromDB(db *sql.DB) error
+	//SaveToDB(filepath string) error
+	//LoadFromDB(filepath string) error
+	//SaveToDB(db *sql.DB) error
+	//LoadFromDB(db *sql.DB) error
 }
 
 type MyStorage struct {
@@ -86,7 +84,7 @@ func (s *MyStorage) Load(metricType string, metric metrics.Metric) (any, error) 
 	}
 }
 
-func (s *MyStorage) LoadDataGauge() map[metrics.Metric]metrics.Gauge {
+func (s *MyStorage) LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	copyDataGauge := make(map[metrics.Metric]metrics.Gauge)
@@ -95,10 +93,10 @@ func (s *MyStorage) LoadDataGauge() map[metrics.Metric]metrics.Gauge {
 		copyDataGauge[key] = value
 	}
 
-	return copyDataGauge
+	return copyDataGauge, nil
 }
 
-func (s *MyStorage) LoadDataCounter() map[metrics.Metric]metrics.Counter {
+func (s *MyStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	copyDataCounter := make(map[metrics.Metric]metrics.Counter)
@@ -107,7 +105,7 @@ func (s *MyStorage) LoadDataCounter() map[metrics.Metric]metrics.Counter {
 		copyDataCounter[key] = value
 	}
 
-	return copyDataCounter
+	return copyDataCounter, nil
 }
 
 func (s *MyStorage) SaveToFile(filepath string) error {
@@ -146,40 +144,6 @@ func (s *MyStorage) SaveToFile(filepath string) error {
 	_ = writer.WriteByte('\n')
 
 	return writer.Flush()
-}
-
-func (s *MyStorage) SaveToDB(db *sql.DB) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	queryGauge := `
-       INSERT INTO gauge (metric, val)
-       VALUES ($1, $2)
-       ON CONFLICT (metric)
-       DO UPDATE SET val = EXCLUDED.val;
-   `
-
-	for metric, val := range s.DataGauge {
-		_, err := db.ExecContext(context.Background(), queryGauge, metric, val)
-		if err != nil {
-			return err
-		}
-	}
-
-	queryCounter := `
-       INSERT INTO counter (metric, val)
-       VALUES ($1, $2)
-       ON CONFLICT (metric)
-       DO UPDATE SET val = EXCLUDED.val;
-   `
-
-	for metric, val := range s.DataCounter {
-		_, err := db.ExecContext(context.Background(), queryCounter, metric, val)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (s *MyStorage) LoadFromFile(filepath string) error {
@@ -225,78 +189,6 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (s *MyStorage) LoadFromDB(db *sql.DB) error {
-	rowsGauge, err := db.QueryContext(context.Background(), `SELECT metric, val FROM gauge`)
-	if err != nil {
-		return err
-	}
-	defer rowsGauge.Close()
-
-	for rowsGauge.Next() {
-		var metric metrics.Metric
-		var val metrics.Gauge
-
-		err = rowsGauge.Scan(&metric, &val)
-		if err != nil {
-			return err
-		}
-		err = s.Store(metric, val)
-		if err != nil {
-			return err
-		}
-	}
-
-	if rowsGauge.Err() != nil {
-		return rowsGauge.Err()
-	}
-
-	rowsCounter, err := db.QueryContext(context.Background(), `SELECT metric, val FROM counter`)
-	if err != nil {
-		return err
-	}
-	defer rowsCounter.Close()
-
-	for rowsCounter.Next() {
-		var metric metrics.Metric
-		var val metrics.Counter
-
-		err = rowsCounter.Scan(&metric, &val)
-		if err != nil {
-			return err
-		}
-		err = s.Store(metric, val)
-		if err != nil {
-			return err
-		}
-	}
-
-	if rowsCounter.Err() != nil {
-		return rowsCounter.Err()
-	}
-
-	return nil
-}
-
-func CreateTables(db *sql.DB) error {
-	_, err := db.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS gauge (
-				  metric VARCHAR(100) UNIQUE,
-				  val DOUBLE PRECISION
-				)`)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS counter (
-				  metric VARCHAR(100) UNIQUE,
-				  val BIGINT
-				)`)
-	if err != nil {
-		return err
 	}
 
 	return nil

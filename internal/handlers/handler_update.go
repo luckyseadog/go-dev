@@ -33,11 +33,16 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 		}
 		err = storage.Store(metric, metrics.Gauge(metricValue))
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "HandlerDefault: error in storage.Store", http.StatusInternalServerError)
 			return
 		}
 
-		jsonData, err := json.Marshal(storage.LoadDataGauge())
+		dataGauge, err := storage.LoadDataGauge()
+		if err != nil {
+			http.Error(w, "HandlerDefault: error in storage.LoadDataGauge", http.StatusInternalServerError)
+			return
+		}
+		jsonData, err := json.Marshal(dataGauge)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -59,11 +64,16 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 
 		err = storage.Store(metric, metrics.Counter(metricValue))
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "HandlerDefault: error in storage.Store", http.StatusInternalServerError)
 			return
 		}
 
-		jsonData, err := json.Marshal(storage.LoadDataCounter())
+		dataCounter, err := storage.LoadDataCounter()
+		if err != nil {
+			http.Error(w, "HandlerDefault: error in storage.LoadDataCounter", http.StatusInternalServerError)
+			return
+		}
+		jsonData, err := json.Marshal(dataCounter)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
