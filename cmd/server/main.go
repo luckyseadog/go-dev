@@ -30,7 +30,7 @@ func main() {
 		}
 		defer db.Close()
 
-		s = storage.NewSqlStorage(db)
+		s = storage.NewSQLStorage(db)
 		if ss, ok := s.(*storage.SQLStorage); ok {
 			err = ss.CreateTables()
 			if err != nil {
