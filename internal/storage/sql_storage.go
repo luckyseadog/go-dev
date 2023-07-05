@@ -8,12 +8,12 @@ import (
 	"sync"
 )
 
-type SqlStorage struct {
+type SQLStorage struct {
 	DB *sql.DB
 	mu sync.RWMutex
 }
 
-func (ss *SqlStorage) CreateTables() error {
+func (ss *SQLStorage) CreateTables() error {
 	_, err := ss.DB.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS gauge (
 				  metric VARCHAR(100) UNIQUE,
 				  val DOUBLE PRECISION
@@ -33,7 +33,7 @@ func (ss *SqlStorage) CreateTables() error {
 	return nil
 }
 
-func (ss *SqlStorage) Store(metric metrics.Metric, metricValue any) error {
+func (ss *SQLStorage) Store(metric metrics.Metric, metricValue any) error {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	queryGauge := `
@@ -79,7 +79,7 @@ func (ss *SqlStorage) Store(metric metrics.Metric, metricValue any) error {
 	}
 }
 
-func (ss *SqlStorage) Load(metricType string, metric metrics.Metric) (any, error) {
+func (ss *SQLStorage) Load(metricType string, metric metrics.Metric) (any, error) {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	if metricType == "gauge" {
@@ -103,7 +103,7 @@ func (ss *SqlStorage) Load(metricType string, metric metrics.Metric) (any, error
 	}
 }
 
-func (ss *SqlStorage) LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error) {
+func (ss *SQLStorage) LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error) {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	rowsGauge, err := ss.DB.QueryContext(context.Background(), `SELECT metric, val FROM gauge`)
@@ -130,7 +130,7 @@ func (ss *SqlStorage) LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error) 
 	return copyDataGauge, nil
 }
 
-func (ss *SqlStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, error) {
+func (ss *SQLStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, error) {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	rowsCounter, err := ss.DB.QueryContext(context.Background(), `SELECT metric, val FROM counter`)
@@ -157,8 +157,8 @@ func (ss *SqlStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, err
 	return copyDataCounter, nil
 }
 
-func NewSqlStorage(db *sql.DB) *SqlStorage {
-	return &SqlStorage{DB: db, mu: sync.RWMutex{}}
+func NewSqlStorage(db *sql.DB) *SQLStorage {
+	return &SQLStorage{DB: db, mu: sync.RWMutex{}}
 }
 
 //func (s *MyStorage) LoadFromDB(db *sql.DB) error {

@@ -31,13 +31,13 @@ func main() {
 		defer db.Close()
 
 		s = storage.NewSqlStorage(db)
-		if ss, ok := s.(*storage.SqlStorage); ok {
+		if ss, ok := s.(*storage.SQLStorage); ok {
 			err = ss.CreateTables()
 			if err != nil {
 				log.Fatal(err)
 			}
 		} else {
-			log.Fatal(errors.New("database is not SqlStorage"))
+			log.Fatal(errors.New("database is not SQLStorage"))
 		}
 	} else {
 		storageChan := make(chan struct{})
