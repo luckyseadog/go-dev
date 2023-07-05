@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -19,41 +20,46 @@ import (
 func main() {
 	envVariables := server.SetUp()
 
-	storageChan := make(chan struct{})
-	s := storage.NewStorage(storageChan, envVariables.StoreInterval)
+	var s storage.Storage
 
-	var db *sql.DB
 	if envVariables.DataSourceName != "" {
 		var err error
-		db, err = sql.Open("pgx", envVariables.DataSourceName)
+		db, err := sql.Open("pgx", envVariables.DataSourceName)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer db.Close()
-		err = storage.CreateTables(db)
-		if err != nil {
-			log.Fatal(err)
+
+		s = storage.NewSqlStorage(db)
+		if ss, ok := s.(*storage.SqlStorage); ok {
+			err = ss.CreateTables()
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatal(errors.New("database is not SqlStorage"))
+		}
+	} else {
+		storageChan := make(chan struct{})
+		cancel := make(chan struct{})
+		defer close(cancel)
+
+		s = storage.NewStorage(storageChan, envVariables.StoreInterval)
+		server.PassSignal(cancel, storageChan, envVariables, s)
+
+		if envVariables.Restore {
+			if _, err := os.Stat(envVariables.StoreFile); err == nil {
+				if ms, ok := s.(*storage.MyStorage); ok {
+					err = ms.LoadFromFile(envVariables.StoreFile)
+					if err != nil {
+						log.Fatal(err)
+					}
+				} else {
+					log.Fatal(errors.New("database is not MyStorage"))
+				}
+			}
 		}
 	}
-
-	if envVariables.Restore {
-		if envVariables.DataSourceName != "" {
-			err := s.LoadFromDB(db)
-			if err != nil {
-				log.Println(err)
-			}
-		} else if _, err := os.Stat(envVariables.StoreFile); err == nil {
-			err := s.LoadFromFile(envVariables.StoreFile)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
-
-	cancel := make(chan struct{})
-	defer close(cancel)
-
-	server.PassSignal(cancel, storageChan, envVariables, s, db)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -68,7 +74,7 @@ func main() {
 		handlers.HandlerGet(w, r, s)
 	})
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		handlers.HandlerPing(w, r, db)
+		handlers.HandlerPing(w, r, s)
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
