@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"github.com/luckyseadog/go-dev/internal/storage"
 	"net/http"
+
+	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
 func HandlerPing(w http.ResponseWriter, r *http.Request, s storage.Storage) {

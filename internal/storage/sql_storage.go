@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/luckyseadog/go-dev/internal/metrics"
 	"sync"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
 type SQLStorage struct {
@@ -157,7 +158,7 @@ func (ss *SQLStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, err
 	return copyDataCounter, nil
 }
 
-func NewSqlStorage(db *sql.DB) *SQLStorage {
+func NewSQLStorage(db *sql.DB) *SQLStorage {
 	return &SQLStorage{DB: db, mu: sync.RWMutex{}}
 }
 
