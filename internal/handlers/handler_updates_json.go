@@ -74,6 +74,11 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 					return
 				}
 			}
+			err = storage.Store(metrics.Metric(metric.ID), metrics.Gauge(*metric.Value))
+			if err != nil {
+				http.Error(w, "HandlerUpdateJSON: Could not store gauge", http.StatusInternalServerError)
+				return
+			}
 
 		} else if metric.MType == "counter" {
 			if metric.Delta == nil || metric.Value != nil {
@@ -98,6 +103,11 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 					return
 				}
 			}
+			err = storage.Store(metrics.Metric(metric.ID), metrics.Counter(*metric.Delta))
+			if err != nil {
+				http.Error(w, "HandlerUpdateJSON: Could not store counter", http.StatusInternalServerError)
+				return
+			}
 
 		} else {
 			http.Error(w, "HandlerUpdateJSON: Not allowed type", http.StatusNotImplemented)
@@ -105,11 +115,11 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 		}
 	}
 
-	err = storage.StoreList(metricsCurrent)
-	if err != nil {
-		http.Error(w, "HandlerUpdateJSON: Could not store metrics", http.StatusInternalServerError)
-		return
-	}
+	//err = storage.StoreList(metricsCurrent)
+	//if err != nil {
+	//	http.Error(w, "HandlerUpdateJSON: Could not store metrics", http.StatusInternalServerError)
+	//	return
+	//}
 
 	metricsAnswer := make([]metrics.Metrics, 0)
 
