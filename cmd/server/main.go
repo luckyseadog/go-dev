@@ -35,10 +35,10 @@ func main() {
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerValueJSON(w, r, s, envVariables.SecretKey)
+			handlers.HandlerValueJSON(w, r, s)
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerValueJSON(w, r, s, envVariables.SecretKey)
+			handlers.HandlerValueJSON(w, r, s)
 		})
 	})
 
@@ -47,16 +47,10 @@ func main() {
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-			//if envVariables.StoreInterval == 0 {
-			//	go server.SyncUpdate(envVariables, s)
-			//}
+			handlers.HandlerUpdateJSON(w, r, s)
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-			//if envVariables.StoreInterval == 0 {
-			//	go server.SyncUpdate(envVariables, s)
-			//}
+			handlers.HandlerUpdateJSON(w, r, s)
 		})
 	})
 

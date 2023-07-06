@@ -2,20 +2,15 @@ package handlers
 
 import (
 	"compress/gzip"
-	"crypto/hmac"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"github.com/luckyseadog/go-dev/internal/security"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.Storage, key []byte) {
+func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
 		http.Error(w, "HandlerUpdateJSON: Only POST requests are allowed!", http.StatusMethodNotAllowed)
@@ -66,22 +61,6 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 				return
 			}
 
-			if len(key) > 0 {
-				computedHash := security.Hash(fmt.Sprintf("%s:gauge:%f", metric.ID, *metric.Value), key)
-				decodedComputedHash, err := hex.DecodeString(computedHash)
-				if err != nil {
-					log.Println(err)
-				}
-				decodedMetricHash, err := hex.DecodeString(metric.Hash)
-				if err != nil {
-					log.Println(err)
-				}
-				if !hmac.Equal(decodedComputedHash, decodedMetricHash) {
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
-			}
-
 			err = storage.Store(metrics.Metric(metric.ID), metrics.Gauge(*metric.Value))
 			if err != nil {
 				http.Error(w, "HandlerUpdateJSON: Could not store gauge", http.StatusInternalServerError)
@@ -92,24 +71,6 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 			if metric.Delta == nil || metric.Value != nil {
 				http.Error(w, "HandlerUpdateJSON: Error in passing metric counter", http.StatusBadRequest)
 				return
-			}
-
-			if len(key) > 0 {
-				//fmt.Println(fmt.Sprintf("%s:counter:%d", string(key), *metric.Delta))
-				//fmt.Println(key)
-				computedHash := security.Hash(fmt.Sprintf("%s:counter:%d", metric.ID, *metric.Delta), key)
-				decodedComputedHash, err := hex.DecodeString(computedHash)
-				if err != nil {
-					log.Println(err)
-				}
-				decodedMetricHash, err := hex.DecodeString(metric.Hash)
-				if err != nil {
-					log.Println(err)
-				}
-				if !hmac.Equal(decodedComputedHash, decodedMetricHash) {
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
 			}
 
 			err = storage.Store(metrics.Metric(metric.ID), metrics.Counter(*metric.Delta))
@@ -134,12 +95,10 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 		}
 		if metric.MType == "gauge" {
 			valueFloat64 := float64(value.(metrics.Gauge))
-			hashMetric := security.Hash(fmt.Sprintf("%s:gauge:%f", metric.ID, valueFloat64), key)
-			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Value: &valueFloat64, Hash: hashMetric})
+			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Value: &valueFloat64})
 		} else if metric.MType == "counter" {
 			valueInt64 := int64(value.(metrics.Counter))
-			hashMetric := security.Hash(fmt.Sprintf("%s:counter:%d", metric.ID, valueInt64), key)
-			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Delta: &valueInt64, Hash: hashMetric})
+			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Delta: &valueInt64})
 		} else {
 			http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
 			return
