@@ -9,7 +9,7 @@ import (
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
-const UPDATE = "update/"
+const UPDATE = "updates/"
 
 type InteractionRules struct {
 	address        string

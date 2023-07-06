@@ -96,6 +96,14 @@ func main() {
 			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
 		})
 	})
+	r.Route("/updates", func(r chi.Router) {
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			handlers.HandlerUpdatesJSON(w, r, s, envVariables.SecretKey)
+		})
+		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+			handlers.HandlerUpdatesJSON(w, r, s, envVariables.SecretKey)
+		})
+	})
 
 	srv := server.NewServer(envVariables.Address, middlewares.GzipMiddleware(r))
 	defer srv.Close()

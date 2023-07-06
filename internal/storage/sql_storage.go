@@ -80,6 +80,54 @@ func (ss *SQLStorage) Store(metric metrics.Metric, metricValue any) error {
 	}
 }
 
+func (ss *SQLStorage) StoreList(metricsList []metrics.Metrics) error {
+	ss.mu.RLock()
+	defer ss.mu.RUnlock()
+
+	tx, err := ss.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmtGauge, err := tx.PrepareContext(context.Background(), `
+       INSERT INTO gauge (metric, val)
+       VALUES ($1, $2)
+       ON CONFLICT (metric)
+       DO UPDATE SET val = EXCLUDED.val;
+   `)
+	if err != nil {
+		return err
+	}
+	defer stmtGauge.Close()
+
+	stmtCounter, err := tx.PrepareContext(context.Background(), `
+       INSERT INTO counter (metric, val)
+       VALUES ($1, $2)
+       ON CONFLICT (metric)
+       DO UPDATE SET val = counter.val + EXCLUDED.val;
+   `)
+	if err != nil {
+		return err
+	}
+	defer stmtCounter.Close()
+
+	for _, metric := range metricsList {
+		if metric.Value != nil {
+			if _, err = stmtGauge.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Value); err != nil {
+				return err
+			}
+		} else if metric.Delta != nil {
+			if _, err = stmtCounter.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Delta); err != nil {
+				return err
+			}
+		} else {
+			return errNoData
+		}
+	}
+	return tx.Commit()
+}
+
 func (ss *SQLStorage) Load(metricType string, metric metrics.Metric) (any, error) {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
