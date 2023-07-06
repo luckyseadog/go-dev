@@ -62,6 +62,14 @@ func TestHandlerDefault(t *testing.T) {
 			HandlerUpdateJSON(w, r, s, []byte{})
 		})
 	})
+	r.Route("/updates", func(r chi.Router) {
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			HandlerUpdatesJSON(w, r, s, []byte{})
+		})
+		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+			HandlerUpdatesJSON(w, r, s, []byte{})
+		})
+	})
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -158,6 +166,14 @@ func TestHandlerUpdate(t *testing.T) {
 			HandlerUpdateJSON(w, r, s, []byte{})
 		})
 	})
+	r.Route("/updates", func(r chi.Router) {
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+			HandlerUpdatesJSON(w, r, s, []byte{})
+		})
+		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+			HandlerUpdatesJSON(w, r, s, []byte{})
+		})
+	})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -174,7 +190,7 @@ func TestHandlerUpdate(t *testing.T) {
 	}
 }
 
-func TestHandlerUpdateJSON(t *testing.T) {
+func TestHandlerUpdatesJSON(t *testing.T) {
 	tests := []struct {
 		name          string
 		request       string
@@ -186,7 +202,7 @@ func TestHandlerUpdateJSON(t *testing.T) {
 		{
 			name:    "test #1",
 			want:    http.StatusOK,
-			request: "http://127.0.0.1:8080/update/",
+			request: "http://127.0.0.1:8080/updates/",
 			bodies: [][]byte{[]byte(`[{"id":"Alloc1", "type":"gauge", "value":1.0}, {"id":"Counter1", "type":"counter", "delta":1}]`),
 				[]byte(`[{"id":"Alloc1", "type":"gauge", "value":2.0}, {"id":"Counter1", "type":"counter", "delta":2}]`)},
 			answerGauge:   []metrics.Gauge{1.0, 2.0},
@@ -199,8 +215,8 @@ func TestHandlerUpdateJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			for idx, body := range tt.bodies {
 				w := httptest.NewRecorder()
-				r := httptest.NewRequest("POST", "/update/", bytes.NewBuffer(body))
-				HandlerUpdateJSON(w, r, s, []byte{})
+				r := httptest.NewRequest("POST", "/updates/", bytes.NewBuffer(body))
+				HandlerUpdatesJSON(w, r, s, []byte{})
 
 				require.Equal(t, http.StatusOK, w.Code)
 				require.Equal(t, tt.answerGauge[idx], s.DataGauge["Alloc1"])
