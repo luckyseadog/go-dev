@@ -14,6 +14,21 @@ type SQLStorage struct {
 	mu sync.RWMutex
 }
 
+func (ss *SQLStorage) CreateTablesContext(ctx context.Context) error {
+	ch := make(chan error, 1)
+
+	go func() {
+		ch <- ss.CreateTables()
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (ss *SQLStorage) CreateTables() error {
 	_, err := ss.DB.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS gauge (
 				  metric VARCHAR(100) UNIQUE,
@@ -32,6 +47,21 @@ func (ss *SQLStorage) CreateTables() error {
 	}
 
 	return nil
+}
+
+func (ss *SQLStorage) StoreContext(ctx context.Context, metric metrics.Metric, metricValue any) error {
+	ch := make(chan error, 1)
+
+	go func() {
+		ch <- ss.Store(metric, metricValue)
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (ss *SQLStorage) Store(metric metrics.Metric, metricValue any) error {
@@ -128,7 +158,22 @@ func (ss *SQLStorage) StoreList(metricsList []metrics.Metrics) error {
 	return tx.Commit()
 }
 
-func (ss *SQLStorage) Load(metricType string, metric metrics.Metric) (any, error) {
+func (ss *SQLStorage) LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- ss.Load(metricType, metric)
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (ss *SQLStorage) Load(metricType string, metric metrics.Metric) Result {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	if metricType == "gauge" {
@@ -136,29 +181,44 @@ func (ss *SQLStorage) Load(metricType string, metric metrics.Metric) (any, error
 		row := ss.DB.QueryRowContext(context.Background(), `SELECT val FROM gauge WHERE gauge.metric = $1`, metric)
 		err := row.Scan(&valueGauge)
 		if err != nil {
-			return nil, errors.New("no such metric")
+			return Result{Value: nil, Err: errors.New("no such metric")}
 		}
-		return valueGauge, nil
+		return Result{Value: valueGauge, Err: nil}
 	} else if metricType == "counter" {
 		var valueCounter metrics.Counter
 		row := ss.DB.QueryRowContext(context.Background(), `SELECT val FROM counter WHERE counter.metric = $1`, metric)
 		err := row.Scan(&valueCounter)
 		if err != nil {
-			return nil, errors.New("no such metric")
+			return Result{Value: nil, Err: errors.New("no such metric")}
 		}
-		return valueCounter, nil
+		return Result{Value: valueCounter, Err: nil}
 	} else {
-		return nil, errors.New("no such metric")
+		return Result{Value: nil, Err: errors.New("no such metric")}
 	}
 }
 
-func (ss *SQLStorage) LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error) {
+func (ss *SQLStorage) LoadDataGaugeContext(ctx context.Context) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- ss.LoadDataGauge()
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (ss *SQLStorage) LoadDataGauge() Result {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	rowsGauge, err := ss.DB.QueryContext(context.Background(), `SELECT metric, val FROM gauge`)
 	copyDataGauge := make(map[metrics.Metric]metrics.Gauge)
 	if err != nil {
-		return nil, err
+		return Result{Value: nil, Err: err}
 	}
 	defer rowsGauge.Close()
 
@@ -168,24 +228,39 @@ func (ss *SQLStorage) LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error) 
 
 		err = rowsGauge.Scan(&metric, &val)
 		if err != nil {
-			return nil, err
+			return Result{Value: nil, Err: err}
 		}
 		copyDataGauge[metric] = val
 	}
 
 	if rowsGauge.Err() != nil {
-		return nil, rowsGauge.Err()
+		return Result{Value: nil, Err: rowsGauge.Err()}
 	}
-	return copyDataGauge, nil
+	return Result{Value: copyDataGauge, Err: nil}
 }
 
-func (ss *SQLStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, error) {
+func (ss *SQLStorage) LoadDataCounterContext(ctx context.Context) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- ss.LoadDataCounter()
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (ss *SQLStorage) LoadDataCounter() Result {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	rowsCounter, err := ss.DB.QueryContext(context.Background(), `SELECT metric, val FROM counter`)
 	copyDataCounter := make(map[metrics.Metric]metrics.Counter)
 	if err != nil {
-		return nil, err
+		return Result{Value: nil, Err: err}
 	}
 	defer rowsCounter.Close()
 
@@ -195,15 +270,15 @@ func (ss *SQLStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, err
 
 		err = rowsCounter.Scan(&metric, &val)
 		if err != nil {
-			return nil, err
+			return Result{Value: nil, Err: err}
 		}
 		copyDataCounter[metric] = val
 	}
 
 	if rowsCounter.Err() != nil {
-		return nil, rowsCounter.Err()
+		return Result{Value: nil, Err: rowsCounter.Err()}
 	}
-	return copyDataCounter, nil
+	return Result{Value: copyDataCounter, Err: nil}
 }
 
 func NewSQLStorage(db *sql.DB) *SQLStorage {

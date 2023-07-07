@@ -37,12 +37,12 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 			return
 		}
 
-		value, err := storage.Load(metricType, metric)
-		if err != nil {
+		res := storage.Load(metricType, metric)
+		if res.Err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		valueGauge, ok := value.(metrics.Gauge)
+		valueGauge, ok := res.Value.(metrics.Gauge)
 		if !ok {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -74,12 +74,12 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 			return
 		}
 
-		value, err := storage.Load(metricType, metric)
-		if err != nil {
+		res := storage.Load(metricType, metric)
+		if res.Err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		valueCounter, ok := value.(metrics.Counter)
+		valueCounter, ok := res.Value.(metrics.Counter)
 		if !ok {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

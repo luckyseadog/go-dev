@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -19,11 +20,16 @@ type AutoSavingParams struct {
 	storeInterval time.Duration
 }
 
+type Result struct {
+	Value any
+	Err   error
+}
+
 type Storage interface {
 	Store(metric metrics.Metric, metricValue any) error
-	Load(metricType string, metric metrics.Metric) (any, error)
-	LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error)
-	LoadDataCounter() (map[metrics.Metric]metrics.Counter, error)
+	Load(metricType string, metric metrics.Metric) Result
+	LoadDataGauge() Result
+	LoadDataCounter() Result
 
 	StoreList(metricsList []metrics.Metrics) error
 
@@ -39,6 +45,21 @@ type MyStorage struct {
 	mu          sync.RWMutex
 
 	autoSavingParams AutoSavingParams
+}
+
+func (s *MyStorage) StoreContext(ctx context.Context, metric metrics.Metric, metricValue any) error {
+	ch := make(chan error, 1)
+
+	go func() {
+		ch <- s.Store(metric, metricValue)
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
@@ -87,27 +108,57 @@ func (s *MyStorage) StoreList(metricsList []metrics.Metrics) error {
 	return nil
 }
 
-func (s *MyStorage) Load(metricType string, metric metrics.Metric) (any, error) {
+func (s *MyStorage) LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- s.Load(metricType, metric)
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (s *MyStorage) Load(metricType string, metric metrics.Metric) Result {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if metricType == "gauge" {
 		if valueGauge, ok := s.DataGauge[metric]; ok {
-			return valueGauge, nil
+			return Result{Value: valueGauge, Err: nil}
 		} else {
-			return nil, errors.New("no such metric")
+			return Result{Value: nil, Err: errors.New("no such metric")}
 		}
 	} else if metricType == "counter" {
 		if valueCounter, ok := s.DataCounter[metric]; ok {
-			return valueCounter, nil
+			return Result{Value: valueCounter, Err: nil}
 		} else {
-			return nil, errors.New("no such metric")
+			return Result{Value: nil, Err: errors.New("no such metric")}
 		}
 	} else {
-		return nil, errors.New("no such metric")
+		return Result{Value: nil, Err: errors.New("no such metric")}
 	}
 }
 
-func (s *MyStorage) LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error) {
+func (s *MyStorage) LoadDataGaugeContext(ctx context.Context) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- s.LoadDataGauge()
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (s *MyStorage) LoadDataGauge() Result {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	copyDataGauge := make(map[metrics.Metric]metrics.Gauge)
@@ -116,10 +167,25 @@ func (s *MyStorage) LoadDataGauge() (map[metrics.Metric]metrics.Gauge, error) {
 		copyDataGauge[key] = value
 	}
 
-	return copyDataGauge, nil
+	return Result{Value: copyDataGauge, Err: nil}
 }
 
-func (s *MyStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, error) {
+func (s *MyStorage) LoadDataCounterContext(ctx context.Context) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- s.LoadDataCounter()
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (s *MyStorage) LoadDataCounter() Result {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	copyDataCounter := make(map[metrics.Metric]metrics.Counter)
@@ -128,7 +194,7 @@ func (s *MyStorage) LoadDataCounter() (map[metrics.Metric]metrics.Counter, error
 		copyDataCounter[key] = value
 	}
 
-	return copyDataCounter, nil
+	return Result{Value: copyDataCounter, Err: nil}
 }
 
 func (s *MyStorage) SaveToFile(filepath string) error {

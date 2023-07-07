@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/luckyseadog/go-dev/internal/metrics"
 	"net/http"
 
 	"github.com/luckyseadog/go-dev/internal/storage"
@@ -21,12 +22,12 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Stor
 		return
 	}
 
-	dataGauge, err := storage.LoadDataGauge()
-	if err != nil {
+	res := storage.LoadDataGauge()
+	if res.Err != nil {
 		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 		return
 	}
-	for key := range dataGauge {
+	for key := range res.Value.(map[metrics.Metric]metrics.Gauge) {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
@@ -34,13 +35,13 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Stor
 		}
 	}
 
-	dataCounter, err := storage.LoadDataCounter()
-	if err != nil {
+	res = storage.LoadDataCounter()
+	if res.Err != nil {
 		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 		return
 	}
 
-	for key := range dataCounter {
+	for key := range res.Value.(map[metrics.Metric]metrics.Counter) {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)

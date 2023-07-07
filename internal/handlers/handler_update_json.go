@@ -117,17 +117,17 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 	var metricsAnswer metrics.Metrics
 
-	value, err := storage.Load(metricCurrent.MType, metrics.Metric(metricCurrent.ID))
-	if err != nil {
+	res := storage.Load(metricCurrent.MType, metrics.Metric(metricCurrent.ID))
+	if res.Err != nil {
 		http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
 		return
 	}
 	if metricCurrent.MType == "gauge" {
-		valueFloat64 := float64(value.(metrics.Gauge))
+		valueFloat64 := float64(res.Value.(metrics.Gauge))
 		hashMetric := security.Hash(fmt.Sprintf("%s:gauge:%f", metricCurrent.ID, valueFloat64), key)
 		metricsAnswer = metrics.Metrics{ID: metricCurrent.ID, MType: metricCurrent.MType, Value: &valueFloat64, Hash: hashMetric}
 	} else if metricCurrent.MType == "counter" {
-		valueInt64 := int64(value.(metrics.Counter))
+		valueInt64 := int64(res.Value.(metrics.Counter))
 		hashMetric := security.Hash(fmt.Sprintf("%s:counter:%d", metricCurrent.ID, valueInt64), key)
 		metricsAnswer = metrics.Metrics{ID: metricCurrent.ID, MType: metricCurrent.MType, Delta: &valueInt64, Hash: hashMetric}
 	} else {
