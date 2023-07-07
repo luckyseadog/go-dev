@@ -14,8 +14,8 @@ type SQLStorage struct {
 	mu sync.RWMutex
 }
 
-func (ss *SQLStorage) CreateTablesContext(ctx context.Context) error {
-	_, err := ss.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS gauge (
+func (ss *SQLStorage) CreateTables() error {
+	_, err := ss.DB.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS gauge (
 				  metric VARCHAR(100) UNIQUE,
 				  val DOUBLE PRECISION
 				)`)
@@ -23,7 +23,7 @@ func (ss *SQLStorage) CreateTablesContext(ctx context.Context) error {
 		return err
 	}
 
-	_, err = ss.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS counter (
+	_, err = ss.DB.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS counter (
 				  metric VARCHAR(100) UNIQUE,
 				  val BIGINT
 				)`)
