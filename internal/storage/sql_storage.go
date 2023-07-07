@@ -15,22 +15,7 @@ type SQLStorage struct {
 }
 
 func (ss *SQLStorage) CreateTablesContext(ctx context.Context) error {
-	ch := make(chan error, 1)
-
-	go func() {
-		ch <- ss.CreateTables()
-	}()
-
-	select {
-	case res := <-ch:
-		return res
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-func (ss *SQLStorage) CreateTables() error {
-	_, err := ss.DB.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS gauge (
+	_, err := ss.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS gauge (
 				  metric VARCHAR(100) UNIQUE,
 				  val DOUBLE PRECISION
 				)`)
@@ -38,7 +23,7 @@ func (ss *SQLStorage) CreateTables() error {
 		return err
 	}
 
-	_, err = ss.DB.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS counter (
+	_, err = ss.DB.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS counter (
 				  metric VARCHAR(100) UNIQUE,
 				  val BIGINT
 				)`)
@@ -50,21 +35,6 @@ func (ss *SQLStorage) CreateTables() error {
 }
 
 func (ss *SQLStorage) StoreContext(ctx context.Context, metric metrics.Metric, metricValue any) error {
-	ch := make(chan error, 1)
-
-	go func() {
-		ch <- ss.Store(metric, metricValue)
-	}()
-
-	select {
-	case res := <-ch:
-		return res
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-func (ss *SQLStorage) Store(metric metrics.Metric, metricValue any) error {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	queryGauge := `
@@ -82,25 +52,25 @@ func (ss *SQLStorage) Store(metric metrics.Metric, metricValue any) error {
 
 	switch metricValue := metricValue.(type) {
 	case metrics.Gauge:
-		_, err := ss.DB.ExecContext(context.Background(), queryGauge, metric, metricValue)
+		_, err := ss.DB.ExecContext(ctx, queryGauge, metric, metricValue)
 		if err != nil {
 			return err
 		}
 		return nil
 	case float64:
-		_, err := ss.DB.ExecContext(context.Background(), queryGauge, metric, metricValue)
+		_, err := ss.DB.ExecContext(ctx, queryGauge, metric, metricValue)
 		if err != nil {
 			return err
 		}
 		return nil
 	case metrics.Counter:
-		_, err := ss.DB.ExecContext(context.Background(), queryCounter, metric, metricValue)
+		_, err := ss.DB.ExecContext(ctx, queryCounter, metric, metricValue)
 		if err != nil {
 			return err
 		}
 		return nil
 	case int64:
-		_, err := ss.DB.ExecContext(context.Background(), queryCounter, metric, metricValue)
+		_, err := ss.DB.ExecContext(ctx, queryCounter, metric, metricValue)
 		if err != nil {
 			return err
 		}
@@ -110,75 +80,12 @@ func (ss *SQLStorage) Store(metric metrics.Metric, metricValue any) error {
 	}
 }
 
-func (ss *SQLStorage) StoreList(metricsList []metrics.Metrics) error {
-	ss.mu.RLock()
-	defer ss.mu.RUnlock()
-
-	tx, err := ss.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	stmtGauge, err := tx.PrepareContext(context.Background(), `
-       INSERT INTO gauge (metric, val)
-       VALUES ($1, $2)
-       ON CONFLICT (metric)
-       DO UPDATE SET val = EXCLUDED.val;
-   `)
-	if err != nil {
-		return err
-	}
-	defer stmtGauge.Close()
-
-	stmtCounter, err := tx.PrepareContext(context.Background(), `
-       INSERT INTO counter (metric, val)
-       VALUES ($1, $2)
-       ON CONFLICT (metric)
-       DO UPDATE SET val = counter.val + EXCLUDED.val;
-   `)
-	if err != nil {
-		return err
-	}
-	defer stmtCounter.Close()
-
-	for _, metric := range metricsList {
-		if metric.Value != nil {
-			if _, err = stmtGauge.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Value); err != nil {
-				return err
-			}
-		} else if metric.Delta != nil {
-			if _, err = stmtCounter.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Delta); err != nil {
-				return err
-			}
-		} else {
-			return errNoData
-		}
-	}
-	return tx.Commit()
-}
-
 func (ss *SQLStorage) LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result {
-	ch := make(chan Result, 1)
-
-	go func() {
-		ch <- ss.Load(metricType, metric)
-	}()
-
-	select {
-	case res := <-ch:
-		return res
-	case <-ctx.Done():
-		return Result{Value: nil, Err: ctx.Err()}
-	}
-}
-
-func (ss *SQLStorage) Load(metricType string, metric metrics.Metric) Result {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 	if metricType == "gauge" {
 		var valueGauge metrics.Gauge
-		row := ss.DB.QueryRowContext(context.Background(), `SELECT val FROM gauge WHERE gauge.metric = $1`, metric)
+		row := ss.DB.QueryRowContext(ctx, `SELECT val FROM gauge WHERE gauge.metric = $1`, metric)
 		err := row.Scan(&valueGauge)
 		if err != nil {
 			return Result{Value: nil, Err: errors.New("no such metric")}
@@ -186,7 +93,7 @@ func (ss *SQLStorage) Load(metricType string, metric metrics.Metric) Result {
 		return Result{Value: valueGauge, Err: nil}
 	} else if metricType == "counter" {
 		var valueCounter metrics.Counter
-		row := ss.DB.QueryRowContext(context.Background(), `SELECT val FROM counter WHERE counter.metric = $1`, metric)
+		row := ss.DB.QueryRowContext(ctx, `SELECT val FROM counter WHERE counter.metric = $1`, metric)
 		err := row.Scan(&valueCounter)
 		if err != nil {
 			return Result{Value: nil, Err: errors.New("no such metric")}
@@ -198,24 +105,9 @@ func (ss *SQLStorage) Load(metricType string, metric metrics.Metric) Result {
 }
 
 func (ss *SQLStorage) LoadDataGaugeContext(ctx context.Context) Result {
-	ch := make(chan Result, 1)
-
-	go func() {
-		ch <- ss.LoadDataGauge()
-	}()
-
-	select {
-	case res := <-ch:
-		return res
-	case <-ctx.Done():
-		return Result{Value: nil, Err: ctx.Err()}
-	}
-}
-
-func (ss *SQLStorage) LoadDataGauge() Result {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	rowsGauge, err := ss.DB.QueryContext(context.Background(), `SELECT metric, val FROM gauge`)
+	rowsGauge, err := ss.DB.QueryContext(ctx, `SELECT metric, val FROM gauge`)
 	copyDataGauge := make(map[metrics.Metric]metrics.Gauge)
 	if err != nil {
 		return Result{Value: nil, Err: err}
@@ -240,24 +132,9 @@ func (ss *SQLStorage) LoadDataGauge() Result {
 }
 
 func (ss *SQLStorage) LoadDataCounterContext(ctx context.Context) Result {
-	ch := make(chan Result, 1)
-
-	go func() {
-		ch <- ss.LoadDataCounter()
-	}()
-
-	select {
-	case res := <-ch:
-		return res
-	case <-ctx.Done():
-		return Result{Value: nil, Err: ctx.Err()}
-	}
-}
-
-func (ss *SQLStorage) LoadDataCounter() Result {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
-	rowsCounter, err := ss.DB.QueryContext(context.Background(), `SELECT metric, val FROM counter`)
+	rowsCounter, err := ss.DB.QueryContext(ctx, `SELECT metric, val FROM counter`)
 	copyDataCounter := make(map[metrics.Metric]metrics.Counter)
 	if err != nil {
 		return Result{Value: nil, Err: err}
@@ -284,6 +161,54 @@ func (ss *SQLStorage) LoadDataCounter() Result {
 func NewSQLStorage(db *sql.DB) *SQLStorage {
 	return &SQLStorage{DB: db, mu: sync.RWMutex{}}
 }
+
+//func (ss *SQLStorage) StoreList(metricsList []metrics.Metrics) error {
+//	ss.mu.RLock()
+//	defer ss.mu.RUnlock()
+//
+//	tx, err := ss.DB.Begin()
+//	if err != nil {
+//		return err
+//	}
+//	defer tx.Rollback()
+//
+//	stmtGauge, err := tx.PrepareContext(context.Background(), `
+//       INSERT INTO gauge (metric, val)
+//       VALUES ($1, $2)
+//       ON CONFLICT (metric)
+//       DO UPDATE SET val = EXCLUDED.val;
+//   `)
+//	if err != nil {
+//		return err
+//	}
+//	defer stmtGauge.Close()
+//
+//	stmtCounter, err := tx.PrepareContext(context.Background(), `
+//       INSERT INTO counter (metric, val)
+//       VALUES ($1, $2)
+//       ON CONFLICT (metric)
+//       DO UPDATE SET val = counter.val + EXCLUDED.val;
+//   `)
+//	if err != nil {
+//		return err
+//	}
+//	defer stmtCounter.Close()
+//
+//	for _, metric := range metricsList {
+//		if metric.Value != nil {
+//			if _, err = stmtGauge.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Value); err != nil {
+//				return err
+//			}
+//		} else if metric.Delta != nil {
+//			if _, err = stmtCounter.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Delta); err != nil {
+//				return err
+//			}
+//		} else {
+//			return errNoData
+//		}
+//	}
+//	return tx.Commit()
+//}
 
 //func (s *MyStorage) LoadFromDB(db *sql.DB) error {
 //	rowsGauge, err := db.QueryContext(context.Background(), `SELECT metric, val FROM gauge`)

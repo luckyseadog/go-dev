@@ -24,7 +24,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage)
 	metricType, metricName := splitPath[len(splitPath)-2], splitPath[len(splitPath)-1]
 
 	if metricType == "gauge" {
-		res := storage.Load(metricType, metrics.Metric(metricName))
+		res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricName))
 		if res.Err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -43,7 +43,7 @@ func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage)
 		}
 
 	} else if metricType == "counter" {
-		res := storage.Load(metricType, metrics.Metric(metricName))
+		res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricName))
 		if res.Err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return

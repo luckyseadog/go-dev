@@ -64,7 +64,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 		metricID, metricType := metricsCurrent[i].ID, metricsCurrent[i].MType
 
 		if metricType == "gauge" {
-			res := storage.Load(metricType, metrics.Metric(metricID))
+			res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricID))
 			if res.Err != nil {
 				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
 				return
@@ -73,7 +73,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 			metricsCurrent[i].Value = &valueFloat64
 			metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:gauge:%f", metricsCurrent[i].ID, valueFloat64), key)
 		} else if metricType == "counter" {
-			res := storage.Load(metricType, metrics.Metric(metricID))
+			res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricID))
 			if res.Err != nil {
 				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
 				return

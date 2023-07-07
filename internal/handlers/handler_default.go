@@ -22,7 +22,7 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Stor
 		return
 	}
 
-	res := storage.LoadDataGauge()
+	res := storage.LoadDataGaugeContext(r.Context())
 	if res.Err != nil {
 		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 		return
@@ -35,7 +35,7 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Stor
 		}
 	}
 
-	res = storage.LoadDataCounter()
+	res = storage.LoadDataCounterContext(r.Context())
 	if res.Err != nil {
 		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 		return
