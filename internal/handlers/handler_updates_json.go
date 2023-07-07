@@ -75,7 +75,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 					return
 				}
 			}
-			err = storage.Store(metrics.Metric(metric.ID), metrics.Gauge(*metric.Value))
+			err = storage.StoreContext(r.Context(), metrics.Metric(metric.ID), metrics.Gauge(*metric.Value))
 			if err != nil {
 				http.Error(w, "HandlerUpdateJSON: Could not store gauge", http.StatusInternalServerError)
 				return
@@ -104,7 +104,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 					return
 				}
 			}
-			err = storage.Store(metrics.Metric(metric.ID), metrics.Counter(*metric.Delta))
+			err = storage.StoreContext(r.Context(), metrics.Metric(metric.ID), metrics.Counter(*metric.Delta))
 			if err != nil {
 				http.Error(w, "HandlerUpdateJSON: Could not store counter", http.StatusInternalServerError)
 				return
@@ -119,7 +119,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 	metricsAnswer := make([]metrics.Metrics, 0)
 
 	for _, metric := range metricsCurrent {
-		res := storage.Load(metric.MType, metrics.Metric(metric.ID))
+		res := storage.LoadContext(r.Context(), metric.MType, metrics.Metric(metric.ID))
 		if res.Err != nil {
 			http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
 			return

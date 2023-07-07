@@ -26,17 +26,15 @@ type Result struct {
 }
 
 type Storage interface {
-	Store(metric metrics.Metric, metricValue any) error
-	Load(metricType string, metric metrics.Metric) Result
-	LoadDataGauge() Result
-	LoadDataCounter() Result
+	StoreContext(ctx context.Context, metric metrics.Metric, metricValue any) error
+	LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result
+	LoadDataGaugeContext(ctx context.Context) Result
+	LoadDataCounterContext(ctx context.Context) Result
 
-	StoreList(metricsList []metrics.Metrics) error
-
-	//SaveToDB(filepath string) error
-	//LoadFromDB(filepath string) error
-	//SaveToDB(db *sql.DB) error
-	//LoadFromDB(db *sql.DB) error
+	//Store(metric metrics.Metric, metricValue any) error
+	//Load(metricType string, metric metrics.Metric) Result
+	//LoadDataGauge() Result
+	//LoadDataCounter() Result
 }
 
 type MyStorage struct {
