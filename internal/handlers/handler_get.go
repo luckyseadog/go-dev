@@ -23,39 +23,39 @@ func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage)
 
 	metricType, metricName := splitPath[len(splitPath)-2], splitPath[len(splitPath)-1]
 
-	switch metricType {
-	case "gauge":
-		value, err := storage.Load(metricType, metrics.Metric(metricName))
-		if err != nil {
+	if metricType == "gauge" {
+		res := storage.Load(metricType, metrics.Metric(metricName))
+		if res.Err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		valueGauge, ok := value.(metrics.Gauge)
+		valueGauge, ok := res.Value.(metrics.Gauge)
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(fmt.Sprintf("%g", valueGauge)))
+		_, err := w.Write([]byte(fmt.Sprintf("%g", valueGauge)))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	case "counter":
-		value, err := storage.Load(metricType, metrics.Metric(metricName))
-		if err != nil {
+
+	} else if metricType == "counter" {
+		res := storage.Load(metricType, metrics.Metric(metricName))
+		if res.Err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		valueCounter, ok := value.(metrics.Counter)
+		valueCounter, ok := res.Value.(metrics.Counter)
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(fmt.Sprintf("%d", valueCounter)))
+		_, err := w.Write([]byte(fmt.Sprintf("%d", valueCounter)))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -51,10 +51,10 @@ func TestStorage_Load(t *testing.T) {
 					storeInterval: time.Second,
 				},
 			}
-			got, err := s.Load("gauge", tt.args.metric)
-			require.NoError(t, err)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Load() got = %v, want %v", got, tt.want)
+			res := s.Load("gauge", tt.args.metric)
+			require.NoError(t, res.Err)
+			if !reflect.DeepEqual(res.Value, tt.want) {
+				t.Errorf("Load() got = %v, want %v", res.Value, tt.want)
 			}
 		})
 	}
