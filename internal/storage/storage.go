@@ -12,7 +12,8 @@ import (
 )
 
 var errNotExpectedType = errors.New("not expected type")
-var errNoData = errors.New("both fields Value and Delta are empty")
+
+//var errNoData = errors.New("both fields Value and Delta are empty")
 
 type AutoSavingParams struct {
 	storageChan   chan struct{}
@@ -83,26 +84,6 @@ func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	default:
 		return errNotExpectedType
 	}
-}
-
-func (s *MyStorage) StoreList(metricsList []metrics.Metrics) error {
-	s.mu.Lock()
-	defer func() {
-		s.mu.Unlock()
-		if s.autoSavingParams.storeInterval == 0 {
-			s.autoSavingParams.storageChan <- struct{}{}
-		}
-	}()
-	for _, metric := range metricsList {
-		if metric.Value != nil {
-			s.DataGauge[metrics.Metric(metric.ID)] = metrics.Gauge(*metric.Value)
-		} else if metric.Delta != nil {
-			s.DataCounter[metrics.Metric(metric.ID)] += metrics.Counter(*metric.Delta)
-		} else {
-			return errNoData
-		}
-	}
-	return nil
 }
 
 func (s *MyStorage) LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result {
@@ -274,3 +255,23 @@ func NewStorage(storageChan chan struct{}, storeInterval time.Duration) *MyStora
 		},
 	}
 }
+
+//func (s *MyStorage) StoreList(metricsList []metrics.Metrics) error {
+//	s.mu.Lock()
+//	defer func() {
+//		s.mu.Unlock()
+//		if s.autoSavingParams.storeInterval == 0 {
+//			s.autoSavingParams.storageChan <- struct{}{}
+//		}
+//	}()
+//	for _, metric := range metricsList {
+//		if metric.Value != nil {
+//			s.DataGauge[metrics.Metric(metric.ID)] = metrics.Gauge(*metric.Value)
+//		} else if metric.Delta != nil {
+//			s.DataCounter[metrics.Metric(metric.ID)] += metrics.Counter(*metric.Delta)
+//		} else {
+//			return errNoData
+//		}
+//	}
+//	return nil
+//}

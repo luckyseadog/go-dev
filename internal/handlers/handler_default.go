@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal/metrics"
 	"net/http"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
 
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
