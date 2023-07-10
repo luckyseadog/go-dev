@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+var MyLog = log.Default()
+
 type Server struct {
 	http.Server
 }
@@ -14,5 +16,5 @@ func NewServer(address string, handler http.Handler) *Server {
 }
 
 func (s *Server) Run() {
-	log.Fatal(s.ListenAndServe())
+	MyLog.Fatal(s.ListenAndServe())
 }

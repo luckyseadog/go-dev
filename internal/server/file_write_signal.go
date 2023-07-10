@@ -1,8 +1,6 @@
 package server
 
 import (
-	"errors"
-	"log"
 	"time"
 
 	"github.com/luckyseadog/go-dev/internal/storage"
@@ -20,10 +18,10 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 						if ms, ok := s.(*storage.MyStorage); ok {
 							err := ms.SaveToFile(envVariables.StoreFile)
 							if err != nil {
-								log.Println(err)
+								MyLog.Println(err)
 							}
 						} else {
-							log.Fatal(errors.New("database is not of type MyStorage"))
+							MyLog.Fatal(storage.ErrNotMyStorage)
 						}
 					}
 				case <-cancelChan:
@@ -40,10 +38,10 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 						if ms, ok := s.(*storage.MyStorage); ok {
 							err := ms.SaveToFile(envVariables.StoreFile)
 							if err != nil {
-								log.Println(err)
+								MyLog.Println(err)
 							}
 						} else {
-							log.Fatal(errors.New("database is not of type MyStorage"))
+							MyLog.Fatal(storage.ErrNotMyStorage)
 						}
 					}
 				case <-cancelChan:

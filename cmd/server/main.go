@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -20,13 +19,23 @@ import (
 func main() {
 	envVariables := server.SetUp()
 
+	if envVariables.IsLog {
+		flog, err := os.OpenFile(`server.log`, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+		if err == nil {
+			server.MyLog = log.New(flog, `server `, log.LstdFlags|log.Lshortfile)
+			defer flog.Close()
+		} else {
+			server.MyLog.Fatalln("error in creating file for logging")
+		}
+	}
+
 	var s storage.Storage
 
 	if envVariables.DataSourceName != "" {
 		var err error
 		db, err := sql.Open("pgx", envVariables.DataSourceName)
 		if err != nil {
-			log.Fatal(err)
+			server.MyLog.Fatal(err)
 		}
 		defer db.Close()
 
@@ -34,10 +43,10 @@ func main() {
 		if ss, ok := s.(*storage.SQLStorage); ok {
 			err = ss.CreateTables()
 			if err != nil {
-				log.Fatal(err)
+				server.MyLog.Fatal(err)
 			}
 		} else {
-			log.Fatal(errors.New("database is not SQLStorage"))
+			server.MyLog.Fatal(storage.ErrNotSQLStorage)
 		}
 	} else {
 		storageChan := make(chan struct{})
@@ -52,10 +61,10 @@ func main() {
 				if ms, ok := s.(*storage.MyStorage); ok {
 					err = ms.LoadFromFile(envVariables.StoreFile)
 					if err != nil {
-						log.Fatal(err)
+						server.MyLog.Fatal(err)
 					}
 				} else {
-					log.Fatal(errors.New("database is not MyStorage"))
+					server.MyLog.Fatal(storage.ErrNotMyStorage)
 				}
 			}
 		}

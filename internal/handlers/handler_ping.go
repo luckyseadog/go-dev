@@ -8,12 +8,12 @@ import (
 
 func HandlerPing(w http.ResponseWriter, r *http.Request, s storage.Storage) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "HandlerDefault: Only GET requests are allowed!", http.StatusMethodNotAllowed)
+		http.Error(w, "HandlerPing: Only GET requests are allowed!", http.StatusMethodNotAllowed)
 		return
 	}
 	ss, ok := s.(*storage.SQLStorage)
 	if !ok {
-		http.Error(w, "Configuration Error: this method allowed only with SQLStorage", http.StatusMethodNotAllowed)
+		http.Error(w, "HandlerPing: this method allowed only with SQLStorage", http.StatusMethodNotAllowed)
 		return
 	}
 
