@@ -48,7 +48,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 	err = json.Unmarshal(body, &metricCurrent)
 	if err != nil {
-		http.Error(w, "HandlerValueJSON: unmarshal error", http.StatusBadRequest)
+		http.Error(w, "HandlerUpdateJSON: unmarshal error", http.StatusBadRequest)
 		return
 	}
 

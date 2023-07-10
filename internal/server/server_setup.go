@@ -2,7 +2,6 @@ package server
 
 import (
 	"flag"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,6 +17,7 @@ type EnvVariables struct {
 	Dir            string
 	SecretKey      []byte
 	DataSourceName string
+	IsLog          bool
 }
 
 func SetUp() *EnvVariables {
@@ -27,6 +27,7 @@ func SetUp() *EnvVariables {
 	var restoreStrFlag string
 	var secretKeyFlag string
 	var dataSourceNameFlag string
+	var isLog bool
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
@@ -34,12 +35,13 @@ func SetUp() *EnvVariables {
 	flag.StringVar(&restoreStrFlag, "r", "true", "if it is needed to load metrics from the past")
 	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
 	flag.StringVar(&dataSourceNameFlag, "d", "", "for accessing the underlying datastore")
+	flag.BoolVar(&isLog, "l", false, "whether to save log to file")
 	flag.Parse()
 
 	address := os.Getenv("ADDRESS")
 	if address == "" {
 		if addressFlag == "" {
-			log.Fatal("Address can not be empty")
+			MyLog.Fatal("Address can not be empty")
 		}
 		address = addressFlag
 	}
@@ -56,7 +58,7 @@ func SetUp() *EnvVariables {
 	} else if numSec, err := strconv.Atoi(storeIntervalStr); err == nil {
 		storeInterval = time.Second * time.Duration(numSec)
 	} else {
-		log.Fatal("Invalid storeInterval")
+		MyLog.Fatal("Invalid storeInterval")
 	}
 
 	storeFile := os.Getenv("STORE_FILE")
@@ -77,7 +79,7 @@ func SetUp() *EnvVariables {
 		} else if strings.ToLower(restoreStr) == "false" {
 			restore = false
 		} else {
-			log.Fatal("Invalid restore")
+			MyLog.Fatal("Invalid restore")
 		}
 	}
 
@@ -98,12 +100,13 @@ func SetUp() *EnvVariables {
 		Dir:            filepath.Dir(storeFile),
 		SecretKey:      []byte(secretKeyStr),
 		DataSourceName: dataSourceNameStr,
+		IsLog:          isLog,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {
 		err := os.Mkdir(envVariables.Dir, 0777)
 		if err != nil {
-			log.Fatal(err)
+			MyLog.Fatal(err)
 		}
 	}
 

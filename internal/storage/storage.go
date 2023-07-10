@@ -13,8 +13,9 @@ import (
 )
 
 var errNotExpectedType = errors.New("not expected type")
-
-//var errNoData = errors.New("both fields Value and Delta are empty")
+var errNoSuchMetric = errors.New("no such metric")
+var ErrNotMyStorage = errors.New("database is not of the type MyStorage")
+var ErrNotSQLStorage = errors.New("database is not of the type SQLStorage")
 
 type AutoSavingParams struct {
 	storageChan   chan struct{}
@@ -31,11 +32,6 @@ type Storage interface {
 	LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result
 	LoadDataGaugeContext(ctx context.Context) Result
 	LoadDataCounterContext(ctx context.Context) Result
-
-	//Store(metric metrics.Metric, metricValue any) error
-	//Load(metricType string, metric metrics.Metric) Result
-	//LoadDataGauge() Result
-	//LoadDataCounter() Result
 }
 
 type MyStorage struct {
@@ -109,16 +105,16 @@ func (s *MyStorage) Load(metricType string, metric metrics.Metric) Result {
 		if valueGauge, ok := s.DataGauge[metric]; ok {
 			return Result{Value: valueGauge, Err: nil}
 		} else {
-			return Result{Value: nil, Err: errors.New("no such metric")}
+			return Result{Value: nil, Err: errNoSuchMetric}
 		}
 	} else if metricType == "counter" {
 		if valueCounter, ok := s.DataCounter[metric]; ok {
 			return Result{Value: valueCounter, Err: nil}
 		} else {
-			return Result{Value: nil, Err: errors.New("no such metric")}
+			return Result{Value: nil, Err: errNoSuchMetric}
 		}
 	} else {
-		return Result{Value: nil, Err: errors.New("no such metric")}
+		return Result{Value: nil, Err: errNoSuchMetric}
 	}
 }
 

@@ -11,13 +11,13 @@ import (
 
 func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "HandlerDefault: Only GET requests are allowed!", http.StatusMethodNotAllowed)
+		http.Error(w, "HandlerGet: Only GET requests are allowed!", http.StatusMethodNotAllowed)
 		return
 	}
 
 	splitPath := strings.Split(r.URL.Path, "/")
 	if len(splitPath) != 4 {
-		http.Error(w, "HandlerDefault: invalid update", http.StatusNotFound)
+		http.Error(w, "HandlerGet: invalid update", http.StatusNotFound)
 		return
 	}
 

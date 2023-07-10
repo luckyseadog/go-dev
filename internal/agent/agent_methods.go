@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -79,14 +78,13 @@ func (a *Agent) PostStats() {
 
 			data, err := json.Marshal(metricsCurrent)
 			if err != nil {
-				log.Println(err)
+				MyLog.Println(err)
 				continue
 			}
 
 			address, err := url.Parse(a.ruler.address)
 			if err != nil {
-				log.Println(err)
-				continue
+				MyLog.Fatal(err)
 			}
 			address.Path = address.Path + UPDATE
 
@@ -94,20 +92,20 @@ func (a *Agent) PostStats() {
 			fmt.Println(string(data))
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost, address.String(), bytes.NewBuffer(data))
 			if err != nil {
-				log.Println(err)
+				MyLog.Println(err)
 				continue
 			}
 			req.Header.Set("Content-Type", a.ruler.contentType)
 			req.Header.Add("Accept", "application/json")
 			response, err := a.client.Do(req)
 			if err != nil {
-				log.Println(err)
+				MyLog.Println(err)
 				continue
 			}
 			defer response.Body.Close()
 			_, err = io.Copy(io.Discard, response.Body)
 			if err != nil {
-				log.Println(err)
+				MyLog.Println(err)
 				continue
 			}
 		}

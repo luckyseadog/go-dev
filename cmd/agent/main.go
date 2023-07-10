@@ -14,12 +14,24 @@ func main() {
 	var pollIntervalStrFlag string
 	var reportIntervalStrFlag string
 	var secretKeyFlag string
+	var isLog bool
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&pollIntervalStrFlag, "p", "2s", "time to catch metrics from program")
 	flag.StringVar(&reportIntervalStrFlag, "r", "10s", "time to send metrics to server")
 	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
+	flag.BoolVar(&isLog, "l", false, "whether to save log to file agent.log")
 	flag.Parse()
+
+	if isLog {
+		flog, err := os.OpenFile(`agent.log`, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+		if err == nil {
+			agent.MyLog = log.New(flog, `agent `, log.LstdFlags|log.Lshortfile)
+			defer flog.Close()
+		} else {
+			agent.MyLog.Fatal("error in creating file")
+		}
+	}
 
 	address := os.Getenv("ADDRESS")
 	if address == "" {
@@ -41,7 +53,7 @@ func main() {
 		var err error
 		pollInterval, err = time.ParseDuration(pollIntervalStr)
 		if err != nil {
-			log.Fatal("Invalid pollInterval")
+			agent.MyLog.Fatal("Invalid pollInterval")
 		}
 	}
 

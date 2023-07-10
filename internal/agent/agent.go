@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"log"
 	"net/http"
 	"runtime"
 	"sync"
@@ -10,6 +11,8 @@ import (
 )
 
 const UPDATE = "updates/"
+
+var MyLog = log.Default()
 
 type InteractionRules struct {
 	address        string
