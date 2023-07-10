@@ -25,7 +25,7 @@ func main() {
 			server.MyLog = log.New(flog, `server `, log.LstdFlags|log.Lshortfile)
 			defer flog.Close()
 		} else {
-			server.MyLog.Fatalln("error in creating file for logging")
+			server.MyLog.Fatal("error in creating file for logging")
 		}
 	}
 
