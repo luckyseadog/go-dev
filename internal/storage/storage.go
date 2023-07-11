@@ -1,9 +1,9 @@
 package storage
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -107,12 +107,7 @@ func (s *MyStorage) SaveToFile(filepath string) error {
 	if filepath == "" {
 		return nil
 	}
-	file, err := os.OpenFile(filepath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
-	if err != nil {
-		return err
-	}
 
-	defer file.Close()
 	dataGauge := map[metrics.Metric]metrics.Gauge{}
 	for key, value := range s.DataGauge {
 		dataGauge[key] = value
@@ -124,49 +119,35 @@ func (s *MyStorage) SaveToFile(filepath string) error {
 
 	fileData := metrics.FileData{DataGauge: dataGauge, DataCounter: dataCounter}
 
-	writer := bufio.NewWriter(file)
 	data, err := json.Marshal(fileData)
 	if err != nil {
 		return err
 	}
 
-	_, err = writer.Write(data)
+	err = os.WriteFile(filepath, data, 0777)
 	if err != nil {
 		return err
 	}
-	_ = writer.WriteByte('\n')
 
-	return writer.Flush()
+	return nil
 }
 
 func (s *MyStorage) LoadFromFile(filepath string) error {
 	s.mu.Lock()
 
-	file, err := os.OpenFile(filepath, os.O_CREATE|os.O_RDONLY, 0777)
+	data, err := os.ReadFile(filepath)
 	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	var lastData []byte
-	var fileData metrics.FileData
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lastData = scanner.Bytes()
+		log.Fatal(err)
 	}
 
 	s.mu.Unlock()
 
-	if scanner.Err() != nil {
-		return scanner.Err()
-	}
-
-	if !json.Valid(lastData) {
+	if !json.Valid(data) {
 		return nil
 	}
 
-	err = json.Unmarshal(lastData, &fileData)
+	var fileData metrics.FileData
+	err = json.Unmarshal(data, &fileData)
 	if err != nil {
 		return err
 	}

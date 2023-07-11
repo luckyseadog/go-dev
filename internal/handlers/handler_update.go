@@ -25,7 +25,8 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 	metricType, metric, metricValueString := splitPath[len(splitPath)-3],
 		metrics.Metric(splitPath[len(splitPath)-2]), splitPath[len(splitPath)-1]
 
-	if metricType == "gauge" {
+	switch metricType {
+	case "gauge":
 		metricValue, err := strconv.ParseFloat(metricValueString, 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -51,7 +52,7 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	} else if metricType == "counter" {
+	case "counter":
 		metricValue, err := strconv.Atoi(metricValueString)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -76,8 +77,7 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-	} else {
+	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}

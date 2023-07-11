@@ -18,6 +18,8 @@ import (
 
 func (a *Agent) GetStats() {
 	ticker := time.NewTicker(a.ruler.pollInterval)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-a.cancel:
@@ -34,6 +36,7 @@ func (a *Agent) GetStats() {
 
 func (a *Agent) PostStats() {
 	ticker := time.NewTicker(a.ruler.reportInterval)
+	defer ticker.Stop()
 
 	for {
 		select {

@@ -55,7 +55,8 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 	}
 
 	for _, metric := range metricsCurrent {
-		if metric.MType == "gauge" {
+		switch metric.MType {
+		case "gauge":
 			if metric.Value == nil || metric.Delta != nil {
 				http.Error(w, "HandlerUpdateJSON: Error in passing metric gauge", http.StatusBadRequest)
 				return
@@ -66,8 +67,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 				http.Error(w, "HandlerUpdateJSON: Could not store gauge", http.StatusInternalServerError)
 				return
 			}
-
-		} else if metric.MType == "counter" {
+		case "counter":
 			if metric.Delta == nil || metric.Value != nil {
 				http.Error(w, "HandlerUpdateJSON: Error in passing metric counter", http.StatusBadRequest)
 				return
@@ -78,8 +78,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 				http.Error(w, "HandlerUpdateJSON: Could not store counter", http.StatusInternalServerError)
 				return
 			}
-
-		} else {
+		default:
 			http.Error(w, "HandlerUpdateJSON: Not allowed type", http.StatusNotImplemented)
 			return
 		}
@@ -93,13 +92,14 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 			http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
 			return
 		}
-		if metric.MType == "gauge" {
+		switch metric.MType {
+		case "gauge":
 			valueFloat64 := float64(value.(metrics.Gauge))
 			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Value: &valueFloat64})
-		} else if metric.MType == "counter" {
+		case "counter":
 			valueInt64 := int64(value.(metrics.Counter))
 			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Delta: &valueInt64})
-		} else {
+		default:
 			http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
 			return
 		}
