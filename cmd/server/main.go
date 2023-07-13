@@ -19,7 +19,7 @@ import (
 func main() {
 	envVariables := server.SetUp()
 
-	if envVariables.IsLog {
+	if envVariables.Logging {
 		flog, err := os.OpenFile(`server.log`, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 		if err == nil {
 			server.MyLog = log.New(flog, `server `, log.LstdFlags|log.Lshortfile)

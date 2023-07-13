@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/shirou/gopsutil/v3/mem"
 	"io"
 	"math/rand"
 	"net/http"
@@ -26,11 +27,32 @@ func (a *Agent) GetStats() {
 		case <-a.cancel:
 			return
 		case <-ticker.C:
-			a.mu.Lock()
+			<-a.ruler.rateLimitChan
+			a.mu.RLock()
 			runtime.ReadMemStats(&a.metrics.MemStats)
 			a.metrics.RandomValue = metrics.Gauge(rand.Float64())
 			a.metrics.PollCount += 1
-			a.mu.Unlock()
+			a.mu.RUnlock()
+			a.ruler.rateLimitChan <- struct{}{}
+		}
+	}
+}
+
+func (a *Agent) GetExtendedStats() {
+	ticker := time.NewTicker(a.ruler.pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-a.cancel:
+			return
+		case <-ticker.C:
+			<-a.ruler.rateLimitChan
+			a.mu.RLock()
+			v, _ := mem.VirtualMemory()
+			a.metrics.VirtualMemory = *v
+			a.mu.RUnlock()
+			a.ruler.rateLimitChan <- struct{}{}
 		}
 	}
 }
@@ -47,6 +69,9 @@ func (a *Agent) PostStats() {
 			a.mu.Lock()
 			metricsGauge := metrics.GetMetrics(a.metrics.MemStats)
 			metricsGauge[metrics.RandomValue] = a.metrics.RandomValue
+			metricsGauge[metrics.TotalMemory] = metrics.Gauge(a.metrics.VirtualMemory.Total)
+			metricsGauge[metrics.FreeMemory] = metrics.Gauge(a.metrics.VirtualMemory.Available)
+			metricsGauge[metrics.CPUutilization1] = metrics.Gauge(a.metrics.VirtualMemory.Used)
 			metricsCounter := map[metrics.Metric]metrics.Counter{
 				metrics.PollCount: a.metrics.PollCount,
 			}
@@ -117,6 +142,7 @@ func (a *Agent) PostStats() {
 
 func (a *Agent) Run() {
 	go a.GetStats()
+	go a.GetExtendedStats()
 	go a.PostStats()
 	<-a.cancel
 }
