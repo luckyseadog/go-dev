@@ -1,6 +1,8 @@
 package metrics
 
-import "runtime"
+import (
+	"runtime"
+)
 
 type Gauge float64
 
@@ -38,6 +40,10 @@ const (
 	StackSys      = Metric("StackSys")
 	Sys           = Metric("Sys")
 	TotalAlloc    = Metric("TotalAlloc")
+
+	TotalMemory     = Metric("TotalMemory")
+	FreeMemory      = Metric("FreeMemory")
+	CPUutilization1 = Metric("CPUutilization1")
 )
 
 func GetMetrics(memStats runtime.MemStats) map[Metric]Gauge {
@@ -72,4 +78,17 @@ func GetMetrics(memStats runtime.MemStats) map[Metric]Gauge {
 	}
 
 	return metricsMap
+}
+
+type Metrics struct {
+	ID    string   `json:"id"`
+	MType string   `json:"type"`
+	Delta *int64   `json:"delta,omitempty"`
+	Value *float64 `json:"value,omitempty"`
+	Hash  string   `json:"hash,omitempty"`
+}
+
+type FileData struct {
+	DataGauge   map[Metric]Gauge   `json:"data_gauge"`
+	DataCounter map[Metric]Counter `json:"data_counter"`
 }
