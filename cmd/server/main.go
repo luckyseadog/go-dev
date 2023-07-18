@@ -115,6 +115,6 @@ func main() {
 	})
 
 	srv := server.NewServer(envVariables.Address, middlewares.GzipMiddleware(r))
-	srv.Run()
 	defer srv.Close()
+	srv.Run()
 }
