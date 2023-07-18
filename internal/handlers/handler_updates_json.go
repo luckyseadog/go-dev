@@ -52,7 +52,8 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 	}
 
 	for _, metric := range metricsCurrent {
-		if metric.MType == "gauge" {
+		switch metric.MType {
+		case "gauge":
 			if metric.Value == nil || metric.Delta != nil {
 				http.Error(w, "HandlerUpdatesJSON: Error in passing metric gauge", http.StatusBadRequest)
 				return
@@ -81,7 +82,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 				return
 			}
 
-		} else if metric.MType == "counter" {
+		case "counter":
 			if metric.Delta == nil || metric.Value != nil {
 				http.Error(w, "HandlerUpdatesJSON: Error in passing metric counter", http.StatusBadRequest)
 				return
@@ -110,7 +111,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 				return
 			}
 
-		} else {
+		default:
 			http.Error(w, "HandlerUpdatesJSON: Not allowed type", http.StatusNotImplemented)
 			return
 		}
@@ -124,15 +125,16 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 			http.Error(w, "HandlerUpdatesJSON: Load error", http.StatusInternalServerError)
 			return
 		}
-		if metric.MType == "gauge" {
+		switch metric.MType {
+		case "gauge":
 			valueFloat64 := float64(res.Value.(metrics.Gauge))
 			hashMetric := security.Hash(fmt.Sprintf("%s:gauge:%f", metric.ID, valueFloat64), key)
 			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Value: &valueFloat64, Hash: hashMetric})
-		} else if metric.MType == "counter" {
+		case "counter":
 			valueInt64 := int64(res.Value.(metrics.Counter))
 			hashMetric := security.Hash(fmt.Sprintf("%s:counter:%d", metric.ID, valueInt64), key)
 			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.ID, MType: metric.MType, Delta: &valueInt64, Hash: hashMetric})
-		} else {
+		default:
 			http.Error(w, "HandlerUpdatesJSON: Load error", http.StatusInternalServerError)
 			return
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -236,6 +237,7 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 	}
 
 	return nil
+
 }
 
 func NewStorage(storageChan chan struct{}, storeInterval time.Duration) *MyStorage {
