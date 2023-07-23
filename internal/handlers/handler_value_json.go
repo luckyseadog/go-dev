@@ -3,6 +3,8 @@ package handlers
 import (
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
+	"github.com/luckyseadog/go-dev/internal/security"
 	"io"
 	"net/http"
 
@@ -10,7 +12,7 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
+func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.Storage, key []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
 		http.Error(w, "HandlerValueJSON: Only POST requests are allowed!", http.StatusMethodNotAllowed)
@@ -69,6 +71,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 			}
 			valueFloat64 := float64(value.(metrics.Gauge))
 			metricsCurrent[i].Value = &valueFloat64
+			metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:gauge:%f", metricsCurrent[i].ID, valueFloat64), key)
 		case "counter":
 			value, err := storage.Load(metricType, metrics.Metric(metricID))
 			if err != nil {
@@ -77,6 +80,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 			}
 			valueInt64 := int64(value.(metrics.Counter))
 			metricsCurrent[i].Delta = &valueInt64
+			metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:counter:%d", metricsCurrent[i].ID, valueInt64), key)
 		default:
 			http.Error(w, "HandlerValueJSON: Not allowed type", http.StatusNotImplemented)
 			return

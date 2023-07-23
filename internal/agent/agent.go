@@ -16,6 +16,7 @@ type InteractionRules struct {
 	contentType    string
 	pollInterval   time.Duration
 	reportInterval time.Duration
+	secretKey      []byte
 }
 
 type Metrics struct {
@@ -32,12 +33,13 @@ type Agent struct {
 	ruler   InteractionRules
 }
 
-func NewAgent(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration) *Agent {
+func NewAgent(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte) *Agent {
 	interactionRules := InteractionRules{
 		address:        address,
 		contentType:    contentType,
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
+		secretKey:      secretKey,
 	}
 	cancel := make(chan struct{})
 	return &Agent{client: http.Client{}, ruler: interactionRules, cancel: cancel}

@@ -17,6 +17,7 @@ type EnvVariables struct {
 	StoreFile     string
 	Restore       bool
 	Dir           string
+	SecretKey     []byte
 }
 
 func SetUp(s storage.Storage) *EnvVariables {
@@ -24,11 +25,13 @@ func SetUp(s storage.Storage) *EnvVariables {
 	var storeIntervalStrFlag string
 	var storeFileFlag string
 	var restoreStrFlag string
+	var secretKeyFlag string
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
 	flag.StringVar(&storeFileFlag, "f", "/tmp/devops-metrics-db.json", "file in which we are saving metrics")
 	flag.StringVar(&restoreStrFlag, "r", "true", "if it is needed to load metrics from the past")
+	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
 	flag.Parse()
 
 	address := os.Getenv("ADDRESS")
@@ -76,11 +79,17 @@ func SetUp(s storage.Storage) *EnvVariables {
 		}
 	}
 
+	secretKeyStr := os.Getenv("KEY")
+	if secretKeyStr == "" {
+		secretKeyStr = secretKeyFlag
+	}
+
 	envVariables := &EnvVariables{Address: address,
 		StoreInterval: storeInterval,
 		StoreFile:     storeFile,
 		Restore:       restore,
 		Dir:           filepath.Dir(storeFile),
+		SecretKey:     []byte(secretKeyStr),
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {
