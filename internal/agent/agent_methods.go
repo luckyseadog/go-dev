@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/shirou/gopsutil/v3/mem"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"runtime"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/luckyseadog/go-dev/internal/security"
 

@@ -367,7 +367,7 @@ func TestHandlerValueJSON(t *testing.T) {
 			result := w.Result()
 			require.Equal(t, tt.want, result.StatusCode)
 			defer result.Body.Close()
-			
+
 			_, err = io.Copy(io.Discard, result.Body)
 			require.NoError(t, err)
 		})

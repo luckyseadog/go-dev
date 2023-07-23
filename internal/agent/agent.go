@@ -1,12 +1,13 @@
 package agent
 
 import (
-	"github.com/shirou/gopsutil/v3/mem"
 	"log"
 	"net/http"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
