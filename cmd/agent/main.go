@@ -13,10 +13,12 @@ func main() {
 	var addressFlag string
 	var pollIntervalStrFlag string
 	var reportIntervalStrFlag string
+	var secretKeyFlag string
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&pollIntervalStrFlag, "p", "2s", "time to catch metrics from program")
 	flag.StringVar(&reportIntervalStrFlag, "r", "10s", "time to send metrics to server")
+	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
 	flag.Parse()
 
 	address := os.Getenv("ADDRESS")
@@ -58,7 +60,12 @@ func main() {
 		}
 	}
 
-	agent := agent.NewAgent(address, contentType, pollInterval, reportInterval)
+	secretKeyStr := os.Getenv("KEY")
+	if secretKeyStr == "" {
+		secretKeyStr = secretKeyFlag
+	}
+
+	agent := agent.NewAgent(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr))
 	time.AfterFunc(10*time.Minute, func() {
 		agent.Stop()
 	})

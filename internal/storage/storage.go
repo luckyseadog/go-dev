@@ -27,6 +27,7 @@ type MyStorage struct {
 	DataGauge     map[metrics.Metric]metrics.Gauge
 	DataCounter   map[metrics.Metric]metrics.Counter
 	mu            sync.RWMutex
+	muMetric      sync.Mutex
 	storageChan   chan struct{}
 	storeInterval time.Duration
 }
