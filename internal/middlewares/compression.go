@@ -18,19 +18,27 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			next.ServeHTTP(w, r)
-			return
+		if r.Header.Get("Content-Encoding") == "gzip" {
+			gzr, err := gzip.NewReader(r.Body)
+			if err != nil {
+				http.Error(w, "HandlerUpdateJSON: error in reading gzip", http.StatusInternalServerError)
+				return
+			}
+			defer gzr.Close()
+			r.Body = gzr
 		}
 
-		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
-		if err != nil {
-			http.Error(w, "HandlerValueJSON: con not wrap writer as gzipWriter", http.StatusInternalServerError)
-			return
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			gzw, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+			if err != nil {
+				http.Error(w, "HandlerValueJSON: con not wrap writer as gzipWriter", http.StatusInternalServerError)
+				return
+			}
+			defer gzw.Close()
+			w = gzipWriter{ResponseWriter: w, Writer: gzw}
+			w.Header().Set("Content-Encoding", "gzip")
 		}
-		defer gz.Close()
 
-		w.Header().Set("Content-Encoding", "gzip")
-		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
+		next.ServeHTTP(w, r)
 	})
 }

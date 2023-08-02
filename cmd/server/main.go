@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"log"
 	"net/http"
 	"os"
@@ -11,7 +12,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/luckyseadog/go-dev/internal/handlers"
-	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
@@ -78,6 +78,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middlewares.GzipMiddleware)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		handlers.HandlerDefault(w, r, s)
@@ -117,7 +118,7 @@ func main() {
 		})
 	})
 
-	srv := server.NewServer(envVariables.Address, middlewares.GzipMiddleware(r))
+	srv := server.NewServer(envVariables.Address, r)
 	defer srv.Close()
 	srv.Run()
 }
