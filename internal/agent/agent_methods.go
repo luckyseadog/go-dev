@@ -12,9 +12,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/luckyseadog/go-dev/internal/security"
-
 	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/security"
 )
 
 func (a *Agent) GetStats() {
@@ -87,7 +86,7 @@ func (a *Agent) PostStats() {
 
 			address, err := url.Parse(a.ruler.address)
 			if err != nil {
-				MyLog.Fatal(err)
+				MyLog.Println(err)
 			}
 			address.Path = address.Path + UPDATE
 

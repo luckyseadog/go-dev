@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luckyseadog/go-dev/internal/metrics"
-	"github.com/luckyseadog/go-dev/internal/storage"
-	"github.com/stretchr/testify/require"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
 func TestHandlerDefault(t *testing.T) {

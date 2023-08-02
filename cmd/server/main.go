@@ -8,16 +8,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"github.com/luckyseadog/go-dev/internal/handlers"
 	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
-	envVariables := server.SetUp()
+	envVariables, err := server.SetUp()
+	if err != nil {
+		server.MyLog.Fatal(err)
+	}
 
 	if envVariables.IsLog {
 		flog, err := os.OpenFile(`server.log`, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)

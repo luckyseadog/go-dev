@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
-
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 

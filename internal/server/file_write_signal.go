@@ -21,7 +21,7 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 								MyLog.Println(err)
 							}
 						} else {
-							MyLog.Fatal(storage.ErrNotMyStorage)
+							MyLog.Println(storage.ErrNotMyStorage)
 						}
 					}
 				case <-cancelChan:
@@ -41,7 +41,7 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 								MyLog.Println(err)
 							}
 						} else {
-							MyLog.Fatal(storage.ErrNotMyStorage)
+							MyLog.Println(storage.ErrNotMyStorage)
 						}
 					}
 				case <-cancelChan:
