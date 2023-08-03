@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +11,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/luckyseadog/go-dev/internal/handlers"
+	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
