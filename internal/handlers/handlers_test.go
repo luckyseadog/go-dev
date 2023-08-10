@@ -209,6 +209,49 @@ func TestHandlerUpdate(t *testing.T) {
 	}
 }
 
+func TestHandlerUpdateJSON(t *testing.T) {
+	tests := []struct {
+		name          string
+		request       string
+		want          int
+		bodies        [][]byte
+		answerGauge   []metrics.Gauge
+		answerCounter []metrics.Counter
+	}{
+		{
+			name:    "test #1",
+			want:    http.StatusOK,
+			request: "http://127.0.0.1:8080/update/",
+			bodies: [][]byte{[]byte(`{"id":"Alloc1", "type":"gauge", "value":1.0}`),
+				[]byte(`{"id":"Counter1", "type":"counter", "delta":2}`),
+				[]byte(`{"id":"Counter1", "type":"counter", "delta":2}`)},
+			answerGauge:   []metrics.Gauge{1.0, 1.0, 1.0},
+			answerCounter: []metrics.Counter{0, 2, 4},
+		},
+	}
+	s := storage.NewStorage(nil, time.Second)
+	r := setupRoutes(s)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for idx, body := range tt.bodies {
+				w := httptest.NewRecorder()
+				request := httptest.NewRequest("POST", "/update/", bytes.NewBuffer(body))
+
+				r.ServeHTTP(w, request)
+				result := w.Result()
+				require.Equal(t, tt.want, result.StatusCode)
+				defer result.Body.Close()
+
+				_, err := io.Copy(io.Discard, result.Body)
+				require.NoError(t, err)
+				require.Equal(t, tt.answerGauge[idx], s.DataGauge["Alloc1"])
+				require.Equal(t, tt.answerCounter[idx], s.DataCounter["Counter1"])
+			}
+		})
+	}
+}
+
 func TestHandlerUpdatesJSON(t *testing.T) {
 	tests := []struct {
 		name          string
