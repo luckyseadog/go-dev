@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"log"
 	"net/http"
 	"runtime"
 	"sync"
@@ -9,7 +10,9 @@ import (
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
-const UPDATE = "update/"
+const UPDATE = "updates/"
+
+var MyLog = log.Default()
 
 type InteractionRules struct {
 	address        string

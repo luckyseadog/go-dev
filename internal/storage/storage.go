@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -12,32 +13,56 @@ import (
 )
 
 var errNotExpectedType = errors.New("not expected type")
+var errNoSuchMetric = errors.New("no such metric")
+var ErrNotMyStorage = errors.New("database is not of the type MyStorage")
+var ErrNotSQLStorage = errors.New("database is not of the type SQLStorage")
+
+type AutoSavingParams struct {
+	storageChan   chan struct{}
+	storeInterval time.Duration
+}
+
+type Result struct {
+	Value any
+	Err   error
+}
 
 type Storage interface {
-	Store(metric metrics.Metric, metricValue any) error
-	Load(metricType string, metric metrics.Metric) (any, error)
-	LoadDataGauge() map[metrics.Metric]metrics.Gauge
-	LoadDataCounter() map[metrics.Metric]metrics.Counter
-
-	SaveToFile(filepath string) error
-	LoadFromFile(filepath string) error
+	StoreContext(ctx context.Context, metric metrics.Metric, metricValue any) error
+	LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result
+	LoadDataGaugeContext(ctx context.Context) Result
+	LoadDataCounterContext(ctx context.Context) Result
 }
 
 type MyStorage struct {
-	DataGauge     map[metrics.Metric]metrics.Gauge
-	DataCounter   map[metrics.Metric]metrics.Counter
-	mu            sync.RWMutex
-	muMetric      sync.Mutex
-	storageChan   chan struct{}
-	storeInterval time.Duration
+	DataGauge   map[metrics.Metric]metrics.Gauge
+	DataCounter map[metrics.Metric]metrics.Counter
+	mu          sync.RWMutex
+
+	autoSavingParams AutoSavingParams
+}
+
+func (s *MyStorage) StoreContext(ctx context.Context, metric metrics.Metric, metricValue any) error {
+	ch := make(chan error, 1)
+
+	go func() {
+		ch <- s.Store(metric, metricValue)
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	s.mu.Lock()
 	defer func() {
 		s.mu.Unlock()
-		if s.storeInterval == 0 {
-			s.storageChan <- struct{}{}
+		if s.autoSavingParams.storeInterval == 0 {
+			s.autoSavingParams.storageChan <- struct{}{}
 		}
 	}()
 	switch metricValue := metricValue.(type) {
@@ -58,27 +83,57 @@ func (s *MyStorage) Store(metric metrics.Metric, metricValue any) error {
 	}
 }
 
-func (s *MyStorage) Load(metricType string, metric metrics.Metric) (any, error) {
+func (s *MyStorage) LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- s.Load(metricType, metric)
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (s *MyStorage) Load(metricType string, metric metrics.Metric) Result {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if metricType == "gauge" {
 		if valueGauge, ok := s.DataGauge[metric]; ok {
-			return valueGauge, nil
+			return Result{Value: valueGauge, Err: nil}
 		} else {
-			return nil, errors.New("no such metric")
+			return Result{Value: nil, Err: errNoSuchMetric}
 		}
 	} else if metricType == "counter" {
 		if valueCounter, ok := s.DataCounter[metric]; ok {
-			return valueCounter, nil
+			return Result{Value: valueCounter, Err: nil}
 		} else {
-			return nil, errors.New("no such metric")
+			return Result{Value: nil, Err: errNoSuchMetric}
 		}
 	} else {
-		return nil, errors.New("no such metric")
+		return Result{Value: nil, Err: errNoSuchMetric}
 	}
 }
 
-func (s *MyStorage) LoadDataGauge() map[metrics.Metric]metrics.Gauge {
+func (s *MyStorage) LoadDataGaugeContext(ctx context.Context) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- s.LoadDataGauge()
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (s *MyStorage) LoadDataGauge() Result {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	copyDataGauge := make(map[metrics.Metric]metrics.Gauge)
@@ -87,10 +142,25 @@ func (s *MyStorage) LoadDataGauge() map[metrics.Metric]metrics.Gauge {
 		copyDataGauge[key] = value
 	}
 
-	return copyDataGauge
+	return Result{Value: copyDataGauge, Err: nil}
 }
 
-func (s *MyStorage) LoadDataCounter() map[metrics.Metric]metrics.Counter {
+func (s *MyStorage) LoadDataCounterContext(ctx context.Context) Result {
+	ch := make(chan Result, 1)
+
+	go func() {
+		ch <- s.LoadDataCounter()
+	}()
+
+	select {
+	case res := <-ch:
+		return res
+	case <-ctx.Done():
+		return Result{Value: nil, Err: ctx.Err()}
+	}
+}
+
+func (s *MyStorage) LoadDataCounter() Result {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	copyDataCounter := make(map[metrics.Metric]metrics.Counter)
@@ -99,7 +169,7 @@ func (s *MyStorage) LoadDataCounter() map[metrics.Metric]metrics.Counter {
 		copyDataCounter[key] = value
 	}
 
-	return copyDataCounter
+	return Result{Value: copyDataCounter, Err: nil}
 }
 
 func (s *MyStorage) SaveToFile(filepath string) error {
@@ -170,12 +240,36 @@ func (s *MyStorage) LoadFromFile(filepath string) error {
 
 }
 
-func (s *MyStorage) SetUp(storeInterval time.Duration) {
-	s.storeInterval = storeInterval
-}
-
-func NewStorage(storageChan chan struct{}) *MyStorage {
+func NewStorage(storageChan chan struct{}, storeInterval time.Duration) *MyStorage {
 	dataGauge := map[metrics.Metric]metrics.Gauge{}
 	dataCounter := map[metrics.Metric]metrics.Counter{}
-	return &MyStorage{DataGauge: dataGauge, DataCounter: dataCounter, mu: sync.RWMutex{}, storageChan: storageChan, storeInterval: time.Second}
+	return &MyStorage{
+		DataGauge:   dataGauge,
+		DataCounter: dataCounter,
+		mu:          sync.RWMutex{},
+		autoSavingParams: AutoSavingParams{
+			storageChan:   storageChan,
+			storeInterval: storeInterval,
+		},
+	}
 }
+
+//func (s *MyStorage) StoreList(metricsList []metrics.Metrics) error {
+//	s.mu.Lock()
+//	defer func() {
+//		s.mu.Unlock()
+//		if s.autoSavingParams.storeInterval == 0 {
+//			s.autoSavingParams.storageChan <- struct{}{}
+//		}
+//	}()
+//	for _, metric := range metricsList {
+//		if metric.Value != nil {
+//			s.DataGauge[metrics.Metric(metric.ID)] = metrics.Gauge(*metric.Value)
+//		} else if metric.Delta != nil {
+//			s.DataCounter[metrics.Metric(metric.ID)] += metrics.Counter(*metric.Delta)
+//		} else {
+//			return errNoData
+//		}
+//	}
+//	return nil
+//}

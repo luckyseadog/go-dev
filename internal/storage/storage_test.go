@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,14 +43,17 @@ func TestStorage_Load(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &MyStorage{
-				DataGauge:     tt.fields.dataGauge,
-				DataCounter:   tt.fields.dataCounter,
-				storeInterval: time.Second,
+				DataGauge:   tt.fields.dataGauge,
+				DataCounter: tt.fields.dataCounter,
+				autoSavingParams: AutoSavingParams{
+					storageChan:   nil,
+					storeInterval: time.Second,
+				},
 			}
-			got, err := s.Load("gauge", tt.args.metric)
-			require.NoError(t, err)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Load() got = %v, want %v", got, tt.want)
+			res := s.Load("gauge", tt.args.metric)
+			require.NoError(t, res.Err)
+			if !reflect.DeepEqual(res.Value, tt.want) {
+				t.Errorf("Load() got = %v, want %v", res.Value, tt.want)
 			}
 		})
 	}
@@ -88,10 +90,13 @@ func TestStorage_Store(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &MyStorage{
-				DataGauge:     tt.fields.dataGauge,
-				DataCounter:   tt.fields.dataCounter,
-				mu:            sync.RWMutex{},
-				storeInterval: time.Second,
+				DataGauge:   tt.fields.dataGauge,
+				DataCounter: tt.fields.dataCounter,
+				mu:          sync.RWMutex{},
+				autoSavingParams: AutoSavingParams{
+					storageChan:   nil,
+					storeInterval: time.Second,
+				},
 			}
 			_ = s.Store(tt.args.metric, tt.args.metricValue)
 			require.Equal(t, s.DataCounter["RandomValue"], metrics.Counter(7))

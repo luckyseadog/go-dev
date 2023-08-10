@@ -1,9 +1,8 @@
 package server
 
 import (
+	"errors"
 	"flag"
-	"github.com/luckyseadog/go-dev/internal/storage"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,32 +11,38 @@ import (
 )
 
 type EnvVariables struct {
-	Address       string
-	StoreInterval time.Duration
-	StoreFile     string
-	Restore       bool
-	Dir           string
-	SecretKey     []byte
+	Address        string
+	StoreInterval  time.Duration
+	StoreFile      string
+	Restore        bool
+	Dir            string
+	SecretKey      []byte
+	DataSourceName string
+	IsLog          bool
 }
 
-func SetUp(s storage.Storage) *EnvVariables {
+func SetUp() (*EnvVariables, error) {
 	var addressFlag string
 	var storeIntervalStrFlag string
 	var storeFileFlag string
 	var restoreStrFlag string
 	var secretKeyFlag string
+	var dataSourceNameFlag string
+	var isLog bool
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
 	flag.StringVar(&storeFileFlag, "f", "/tmp/devops-metrics-db.json", "file in which we are saving metrics")
 	flag.StringVar(&restoreStrFlag, "r", "true", "if it is needed to load metrics from the past")
 	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
+	flag.StringVar(&dataSourceNameFlag, "d", "", "for accessing the underlying datastore")
+	flag.BoolVar(&isLog, "l", false, "whether to save log to file")
 	flag.Parse()
 
 	address := os.Getenv("ADDRESS")
 	if address == "" {
 		if addressFlag == "" {
-			log.Fatal("Address can not be empty")
+			return nil, errors.New("address can not be empty")
 		}
 		address = addressFlag
 	}
@@ -54,7 +59,7 @@ func SetUp(s storage.Storage) *EnvVariables {
 	} else if numSec, err := strconv.Atoi(storeIntervalStr); err == nil {
 		storeInterval = time.Second * time.Duration(numSec)
 	} else {
-		log.Fatal("Invalid storeInterval")
+		return nil, errors.New("invalid storeInterval")
 	}
 
 	storeFile := os.Getenv("STORE_FILE")
@@ -75,7 +80,7 @@ func SetUp(s storage.Storage) *EnvVariables {
 		} else if strings.ToLower(restoreStr) == "false" {
 			restore = false
 		} else {
-			log.Fatal("Invalid restore")
+			return nil, errors.New("invalid restore")
 		}
 	}
 
@@ -84,30 +89,28 @@ func SetUp(s storage.Storage) *EnvVariables {
 		secretKeyStr = secretKeyFlag
 	}
 
+	dataSourceNameStr := os.Getenv("DATABASE_DSN")
+	if dataSourceNameStr == "" {
+		dataSourceNameStr = dataSourceNameFlag
+	}
+
 	envVariables := &EnvVariables{Address: address,
-		StoreInterval: storeInterval,
-		StoreFile:     storeFile,
-		Restore:       restore,
-		Dir:           filepath.Dir(storeFile),
-		SecretKey:     []byte(secretKeyStr),
+		StoreInterval:  storeInterval,
+		StoreFile:      storeFile,
+		Restore:        restore,
+		Dir:            filepath.Dir(storeFile),
+		SecretKey:      []byte(secretKeyStr),
+		DataSourceName: dataSourceNameStr,
+		IsLog:          isLog,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {
 		err := os.Mkdir(envVariables.Dir, 0777)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 
-	if envVariables.Restore {
-		if _, err := os.Stat(envVariables.StoreFile); err == nil {
-			err := s.LoadFromFile(envVariables.StoreFile)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
-
-	return envVariables
+	return envVariables, nil
 
 }

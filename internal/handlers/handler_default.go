@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
 func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "HandlerDefault: Only GET requests are allowed!", http.StatusMethodNotAllowed)
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/html")
@@ -19,14 +21,27 @@ func HandlerDefault(w http.ResponseWriter, r *http.Request, storage storage.Stor
 		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 		return
 	}
-	for key := range storage.LoadDataGauge() {
+
+	res := storage.LoadDataGaugeContext(r.Context())
+	if res.Err != nil {
+		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
+		return
+	}
+	for key := range res.Value.(map[metrics.Metric]metrics.Gauge) {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
 			return
 		}
 	}
-	for key := range storage.LoadDataCounter() {
+
+	res = storage.LoadDataCounterContext(r.Context())
+	if res.Err != nil {
+		http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)
+		return
+	}
+
+	for key := range res.Value.(map[metrics.Metric]metrics.Counter) {
 		_, err = fmt.Fprintf(w, "<p>%s</p>", string(key))
 		if err != nil {
 			http.Error(w, "HandlerDefault: error when writing to html", http.StatusInternalServerError)

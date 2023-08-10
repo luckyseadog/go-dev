@@ -1,14 +1,13 @@
 package handlers
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"github.com/luckyseadog/go-dev/internal/security"
 	"io"
 	"net/http"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/security"
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
@@ -18,26 +17,12 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 		http.Error(w, "HandlerValueJSON: Only POST requests are allowed!", http.StatusMethodNotAllowed)
 	}
 
-	var reader io.Reader
-	if r.Header.Get("Content-Encoding") == "gzip" {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, "HandlerValueJSON: error in reading gzip", http.StatusInternalServerError)
-			defer r.Body.Close()
-			return
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-		defer r.Body.Close()
-	}
-
-	body, err := io.ReadAll(reader)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "HandlerValueJSON: Read body error", http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 
 	var isPackData = true
 	metricsCurrent := make([]metrics.Metrics, 0)
@@ -64,21 +49,21 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 
 		switch metricType {
 		case "gauge":
-			value, err := storage.Load(metricType, metrics.Metric(metricID))
-			if err != nil {
+			res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricID))
+			if res.Err != nil {
 				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
 				return
 			}
-			valueFloat64 := float64(value.(metrics.Gauge))
+			valueFloat64 := float64(res.Value.(metrics.Gauge))
 			metricsCurrent[i].Value = &valueFloat64
 			metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:gauge:%f", metricsCurrent[i].ID, valueFloat64), key)
 		case "counter":
-			value, err := storage.Load(metricType, metrics.Metric(metricID))
-			if err != nil {
+			res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricID))
+			if res.Err != nil {
 				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
 				return
 			}
-			valueInt64 := int64(value.(metrics.Counter))
+			valueInt64 := int64(res.Value.(metrics.Counter))
 			metricsCurrent[i].Delta = &valueInt64
 			metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:counter:%d", metricsCurrent[i].ID, valueInt64), key)
 		default:

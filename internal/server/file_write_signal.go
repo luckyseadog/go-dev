@@ -1,13 +1,12 @@
 package server
 
 import (
-	"log"
 	"time"
 
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, storage storage.Storage) {
+func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariables *EnvVariables, s storage.Storage) {
 	if envVariables.StoreInterval > 0 {
 		backUpTicker := time.NewTicker(envVariables.StoreInterval)
 		go func() {
@@ -15,9 +14,15 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 			for {
 				select {
 				case <-backUpTicker.C:
-					err := storage.SaveToFile(envVariables.StoreFile)
-					if err != nil {
-						log.Println(err)
+					if envVariables.DataSourceName == "" {
+						if ms, ok := s.(*storage.MyStorage); ok {
+							err := ms.SaveToFile(envVariables.StoreFile)
+							if err != nil {
+								MyLog.Println(err)
+							}
+						} else {
+							MyLog.Println(storage.ErrNotMyStorage)
+						}
 					}
 				case <-cancelChan:
 					return
@@ -29,9 +34,15 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 			for {
 				select {
 				case <-chanStorage:
-					err := storage.SaveToFile(envVariables.StoreFile)
-					if err != nil {
-						log.Println(err)
+					if envVariables.DataSourceName == "" {
+						if ms, ok := s.(*storage.MyStorage); ok {
+							err := ms.SaveToFile(envVariables.StoreFile)
+							if err != nil {
+								MyLog.Println(err)
+							}
+						} else {
+							MyLog.Println(storage.ErrNotMyStorage)
+						}
 					}
 				case <-cancelChan:
 					return
@@ -40,10 +51,3 @@ func PassSignal(cancelChan chan struct{}, chanStorage chan struct{}, envVariable
 		}()
 	}
 }
-
-//func SyncUpdate(envVariables *EnvVariables, storage storage.Storage) {
-//	err := storage.SaveToFile(envVariables.StoreFile)
-//	if err != nil {
-//		log.Println(err)
-//	}
-//}

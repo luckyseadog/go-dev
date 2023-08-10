@@ -11,12 +11,13 @@ import (
 
 func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "HandlerDefault: Only GET requests are allowed!", http.StatusMethodNotAllowed)
+		http.Error(w, "HandlerGet: Only GET requests are allowed!", http.StatusMethodNotAllowed)
+		return
 	}
 
 	splitPath := strings.Split(r.URL.Path, "/")
 	if len(splitPath) != 4 {
-		http.Error(w, "HandlerDefault: invalid update", http.StatusNotFound)
+		http.Error(w, "HandlerGet: invalid update", http.StatusNotFound)
 		return
 	}
 
@@ -24,37 +25,38 @@ func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage)
 
 	switch metricType {
 	case "gauge":
-		value, err := storage.Load(metricType, metrics.Metric(metricName))
-		if err != nil {
+		res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricName))
+		if res.Err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		valueGauge, ok := value.(metrics.Gauge)
+		valueGauge, ok := res.Value.(metrics.Gauge)
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(fmt.Sprintf("%g", valueGauge)))
+		_, err := w.Write([]byte(fmt.Sprintf("%g", valueGauge)))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
 	case "counter":
-		value, err := storage.Load(metricType, metrics.Metric(metricName))
-		if err != nil {
+		res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricName))
+		if res.Err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		valueCounter, ok := value.(metrics.Counter)
+		valueCounter, ok := res.Value.(metrics.Counter)
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(fmt.Sprintf("%d", valueCounter)))
+		_, err := w.Write([]byte(fmt.Sprintf("%d", valueCounter)))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
