@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+  "github.com/go-chi/chi/v5"
+  "github.com/stretchr/testify/require"
+  
 	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/storage"
-	"github.com/stretchr/testify/require"
-
-	"github.com/go-chi/chi/v5"
 )
 
 func setupRoutes(s storage.Storage) *chi.Mux {
@@ -209,7 +209,7 @@ func TestHandlerUpdate(t *testing.T) {
 	}
 }
 
-func TestHandlerUpdateJSON(t *testing.T) {
+func TestHandlerUpdatesJSON(t *testing.T) {
 	tests := []struct {
 		name          string
 		request       string

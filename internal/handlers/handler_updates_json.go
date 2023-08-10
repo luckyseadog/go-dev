@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"compress/gzip"
 	"crypto/hmac"
 	"encoding/hex"
 	"encoding/json"
@@ -9,9 +8,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/luckyseadog/go-dev/internal/security"
-
 	"github.com/luckyseadog/go-dev/internal/metrics"
+	"github.com/luckyseadog/go-dev/internal/security"
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
@@ -22,26 +20,12 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 		return
 	}
 
-	var reader io.Reader
-	if r.Header.Get("Content-Encoding") == "gzip" {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, "HandlerUpdatesJSON: error in reading gzip", http.StatusInternalServerError)
-			defer r.Body.Close()
-			return
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-		defer r.Body.Close()
-	}
-
-	body, err := io.ReadAll(reader)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "HandlerUpdatesJSON: Read body error", http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 
 	metricsCurrent := make([]metrics.Metrics, 0)
 

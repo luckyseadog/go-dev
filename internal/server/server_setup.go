@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"flag"
 	"os"
 	"path/filepath"
@@ -17,10 +18,10 @@ type EnvVariables struct {
 	Dir            string
 	SecretKey      []byte
 	DataSourceName string
-	Logging        bool
+	Logging          bool
 }
 
-func SetUp() *EnvVariables {
+func SetUp() (*EnvVariables, error) {
 	var addressFlag string
 	var storeIntervalStrFlag string
 	var storeFileFlag string
@@ -41,7 +42,7 @@ func SetUp() *EnvVariables {
 	address := os.Getenv("ADDRESS")
 	if address == "" {
 		if addressFlag == "" {
-			MyLog.Fatal("Address can not be empty")
+			return nil, errors.New("address can not be empty")
 		}
 		address = addressFlag
 	}
@@ -58,7 +59,7 @@ func SetUp() *EnvVariables {
 	} else if numSec, err := strconv.Atoi(storeIntervalStr); err == nil {
 		storeInterval = time.Second * time.Duration(numSec)
 	} else {
-		MyLog.Fatal("Invalid storeInterval")
+		return nil, errors.New("invalid storeInterval")
 	}
 
 	storeFile := os.Getenv("STORE_FILE")
@@ -79,7 +80,7 @@ func SetUp() *EnvVariables {
 		} else if strings.ToLower(restoreStr) == "false" {
 			restore = false
 		} else {
-			MyLog.Fatal("Invalid restore")
+			return nil, errors.New("invalid restore")
 		}
 	}
 
@@ -106,10 +107,10 @@ func SetUp() *EnvVariables {
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {
 		err := os.Mkdir(envVariables.Dir, 0777)
 		if err != nil {
-			MyLog.Fatal(err)
+			return nil, err
 		}
 	}
 
-	return envVariables
+	return envVariables, nil
 
 }

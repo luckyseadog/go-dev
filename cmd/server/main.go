@@ -8,16 +8,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"github.com/luckyseadog/go-dev/internal/handlers"
 	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
-	envVariables := server.SetUp()
+	envVariables, err := server.SetUp()
+	if err != nil {
+		server.MyLog.Fatal(err)
+	}
 
 	if envVariables.Logging {
 		flog, err := os.OpenFile(`server.log`, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
@@ -75,6 +78,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middlewares.GzipMiddleware)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		handlers.HandlerDefault(w, r, s)
@@ -114,7 +118,7 @@ func main() {
 		})
 	})
 
-	srv := server.NewServer(envVariables.Address, middlewares.GzipMiddleware(r))
+	srv := server.NewServer(envVariables.Address, r)
 	defer srv.Close()
 	srv.Run()
 }

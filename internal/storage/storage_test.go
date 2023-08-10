@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
-
 	"github.com/stretchr/testify/require"
 )
 
