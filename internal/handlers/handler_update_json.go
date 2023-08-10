@@ -9,8 +9,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/luckyseadog/go-dev/internal/security"
-
 	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/security"
 	"github.com/luckyseadog/go-dev/internal/storage"
