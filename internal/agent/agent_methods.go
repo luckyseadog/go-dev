@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
@@ -49,8 +50,21 @@ func (a *Agent) GetExtendedStats() {
 		case <-ticker.C:
 			<-a.ruler.rateLimitChan
 			a.mu.RLock()
-			v, _ := mem.VirtualMemory()
+			v, err := mem.VirtualMemory()
+			if err != nil {
+				MyLog.Println(err)
+			}
 			a.metrics.VirtualMemory = *v
+
+			CPUUtilizationFloat, err := cpu.Percent(0, true)
+			if err != nil {
+				MyLog.Println(err)
+			}
+			CPUUtilization := make([]metrics.Gauge, 0, len(CPUUtilizationFloat))
+			for _, el := range CPUUtilizationFloat {
+				CPUUtilization = append(CPUUtilization, metrics.Gauge(el))
+			}
+			a.metrics.CPUUtilization = CPUUtilization
 			a.mu.RUnlock()
 			a.ruler.rateLimitChan <- struct{}{}
 		}
@@ -71,7 +85,9 @@ func (a *Agent) PostStats() {
 			metricsGauge[metrics.RandomValue] = a.metrics.RandomValue
 			metricsGauge[metrics.TotalMemory] = metrics.Gauge(a.metrics.VirtualMemory.Total)
 			metricsGauge[metrics.FreeMemory] = metrics.Gauge(a.metrics.VirtualMemory.Available)
-			metricsGauge[metrics.CPUutilization1] = metrics.Gauge(a.metrics.VirtualMemory.Used)
+			for i, cpuMetric := range a.metrics.CPUUtilization {
+				metricsGauge[metrics.Metric(fmt.Sprintf("CPUutilization%d", i+1))] = cpuMetric
+			}
 			metricsCounter := map[metrics.Metric]metrics.Counter{
 				metrics.PollCount: a.metrics.PollCount,
 			}

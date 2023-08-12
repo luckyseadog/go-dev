@@ -26,10 +26,11 @@ type InteractionRules struct {
 }
 
 type Metrics struct {
-	MemStats      runtime.MemStats
-	VirtualMemory mem.VirtualMemoryStat
-	PollCount     metrics.Counter
-	RandomValue   metrics.Gauge
+	MemStats       runtime.MemStats
+	VirtualMemory  mem.VirtualMemoryStat
+	CPUUtilization []metrics.Gauge
+	PollCount      metrics.Counter
+	RandomValue    metrics.Gauge
 }
 
 type Agent struct {
