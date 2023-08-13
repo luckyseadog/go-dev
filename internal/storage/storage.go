@@ -253,23 +253,3 @@ func NewStorage(storageChan chan struct{}, storeInterval time.Duration) *MyStora
 		},
 	}
 }
-
-//func (s *MyStorage) StoreList(metricsList []metrics.Metrics) error {
-//	s.mu.Lock()
-//	defer func() {
-//		s.mu.Unlock()
-//		if s.autoSavingParams.storeInterval == 0 {
-//			s.autoSavingParams.storageChan <- struct{}{}
-//		}
-//	}()
-//	for _, metric := range metricsList {
-//		if metric.Value != nil {
-//			s.DataGauge[metrics.Metric(metric.ID)] = metrics.Gauge(*metric.Value)
-//		} else if metric.Delta != nil {
-//			s.DataCounter[metrics.Metric(metric.ID)] += metrics.Counter(*metric.Delta)
-//		} else {
-//			return errNoData
-//		}
-//	}
-//	return nil
-//}
