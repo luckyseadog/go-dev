@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"os"
 
 	"github.com/go-chi/chi/v5"
@@ -115,6 +116,23 @@ func main() {
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
 			handlers.HandlerUpdatesJSON(w, r, s, envVariables.SecretKey)
+		})
+	})
+	r.Route("/debug/pprof", func(r chi.Router) {
+		r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+			pprof.Index(w, r)
+		})
+		r.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
+			pprof.Profile(w, r)
+		})
+		r.HandleFunc("/cmdline", func(w http.ResponseWriter, r *http.Request) {
+			pprof.Cmdline(w, r)
+		})
+		r.HandleFunc("/symbol", func(w http.ResponseWriter, r *http.Request) {
+			pprof.Symbol(w, r)
+		})
+		r.HandleFunc("/trace", func(w http.ResponseWriter, r *http.Request) {
+			pprof.Trace(w, r)
 		})
 	})
 

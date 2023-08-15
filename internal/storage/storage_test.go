@@ -178,3 +178,18 @@ func TestStorage_LoadAllData(t *testing.T) {
 	require.NoError(t, res.Err)
 	require.True(t, reflect.DeepEqual(res.Value, dataCounter))
 }
+
+func BenchmarkMyStorage(b *testing.B) {
+	storage := NewStorage(nil, time.Second)
+
+	b.Run("Store", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			storage.StoreContext(context.Background(), "Metric1", metrics.Gauge(1.0))
+		}
+	})
+	b.Run("Load", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			storage.LoadContext(context.Background(), "gauge", "Metric1")
+		}
+	})
+}
