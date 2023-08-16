@@ -4,11 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
 type SQLStorage struct {
 	DB *sql.DB
+}
+
+func NewSQLStorage(db *sql.DB) *SQLStorage {
+	return &SQLStorage{DB: db}
 }
 
 func (ss *SQLStorage) CreateTables() error {
@@ -146,141 +151,3 @@ func (ss *SQLStorage) LoadDataCounterContext(ctx context.Context) Result {
 	}
 	return Result{Value: copyDataCounter, Err: nil}
 }
-
-func NewSQLStorage(db *sql.DB) *SQLStorage {
-	return &SQLStorage{DB: db}
-}
-
-//func (ss *SQLStorage) StoreList(metricsList []metrics.Metrics) error {
-//	ss.mu.RLock()
-//	defer ss.mu.RUnlock()
-//
-//	tx, err := ss.DB.Begin()
-//	if err != nil {
-//		return err
-//	}
-//	defer tx.Rollback()
-//
-//	stmtGauge, err := tx.PrepareContext(context.Background(), `
-//       INSERT INTO gauge (metric, val)
-//       VALUES ($1, $2)
-//       ON CONFLICT (metric)
-//       DO UPDATE SET val = EXCLUDED.val;
-//   `)
-//	if err != nil {
-//		return err
-//	}
-//	defer stmtGauge.Close()
-//
-//	stmtCounter, err := tx.PrepareContext(context.Background(), `
-//       INSERT INTO counter (metric, val)
-//       VALUES ($1, $2)
-//       ON CONFLICT (metric)
-//       DO UPDATE SET val = counter.val + EXCLUDED.val;
-//   `)
-//	if err != nil {
-//		return err
-//	}
-//	defer stmtCounter.Close()
-//
-//	for _, metric := range metricsList {
-//		if metric.Value != nil {
-//			if _, err = stmtGauge.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Value); err != nil {
-//				return err
-//			}
-//		} else if metric.Delta != nil {
-//			if _, err = stmtCounter.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Delta); err != nil {
-//				return err
-//			}
-//		} else {
-//			return errNoData
-//		}
-//	}
-//	return tx.Commit()
-//}
-
-//func (s *MyStorage) LoadFromDB(db *sql.DB) error {
-//	rowsGauge, err := db.QueryContext(context.Background(), `SELECT metric, val FROM gauge`)
-//	if err != nil {
-//		return err
-//	}
-//	defer rowsGauge.Close()
-//
-//	for rowsGauge.Next() {
-//		var metric metrics.Metric
-//		var val metrics.Gauge
-//
-//		err = rowsGauge.Scan(&metric, &val)
-//		if err != nil {
-//			return err
-//		}
-//		err = s.Store(metric, val)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	if rowsGauge.Err() != nil {
-//		return rowsGauge.Err()
-//	}
-//
-//	rowsCounter, err := db.QueryContext(context.Background(), `SELECT metric, val FROM counter`)
-//	if err != nil {
-//		return err
-//	}
-//	defer rowsCounter.Close()
-//
-//	for rowsCounter.Next() {
-//		var metric metrics.Metric
-//		var val metrics.Counter
-//
-//		err = rowsCounter.Scan(&metric, &val)
-//		if err != nil {
-//			return err
-//		}
-//		err = s.Store(metric, val)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	if rowsCounter.Err() != nil {
-//		return rowsCounter.Err()
-//	}
-//
-//	return nil
-//}
-//
-//func (s *MyStorage) SaveToDB(db *sql.DB) error {
-//	s.mu.Lock()
-//	defer s.mu.Unlock()
-//
-//	queryGauge := `
-//       INSERT INTO gauge (metric, val)
-//       VALUES ($1, $2)
-//       ON CONFLICT (metric)
-//       DO UPDATE SET val = EXCLUDED.val;
-//   `
-//
-//	for metric, val := range s.DataGauge {
-//		_, err := db.ExecContext(context.Background(), queryGauge, metric, val)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	queryCounter := `
-//       INSERT INTO counter (metric, val)
-//       VALUES ($1, $2)
-//       ON CONFLICT (metric)
-//       DO UPDATE SET val = EXCLUDED.val;
-//   `
-//
-//	for metric, val := range s.DataCounter {
-//		_, err := db.ExecContext(context.Background(), queryCounter, metric, val)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	return nil
-//}
