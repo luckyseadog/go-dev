@@ -40,6 +40,10 @@ const (
 	StackSys      = Metric("StackSys")
 	Sys           = Metric("Sys")
 	TotalAlloc    = Metric("TotalAlloc")
+
+	TotalMemory     = Metric("TotalMemory")
+	FreeMemory      = Metric("FreeMemory")
+	CPUutilization1 = Metric("CPUutilization1")
 )
 
 func GetMetrics(memStats runtime.MemStats) map[Metric]Gauge {

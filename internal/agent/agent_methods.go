@@ -12,6 +12,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
+
 	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/security"
 )
@@ -25,11 +28,45 @@ func (a *Agent) GetStats() {
 		case <-a.cancel:
 			return
 		case <-ticker.C:
-			a.mu.Lock()
+			<-a.ruler.rateLimitChan
+			a.mu.RLock()
 			runtime.ReadMemStats(&a.metrics.MemStats)
 			a.metrics.RandomValue = metrics.Gauge(rand.Float64())
 			a.metrics.PollCount += 1
-			a.mu.Unlock()
+			a.mu.RUnlock()
+			a.ruler.rateLimitChan <- struct{}{}
+		}
+	}
+}
+
+func (a *Agent) GetExtendedStats() {
+	ticker := time.NewTicker(a.ruler.pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-a.cancel:
+			return
+		case <-ticker.C:
+			<-a.ruler.rateLimitChan
+			a.mu.RLock()
+			v, err := mem.VirtualMemory()
+			if err != nil {
+				MyLog.Println(err)
+			}
+			a.metrics.VirtualMemory = *v
+
+			CPUUtilizationFloat, err := cpu.Percent(0, true)
+			if err != nil {
+				MyLog.Println(err)
+			}
+			CPUUtilization := make([]metrics.Gauge, 0, len(CPUUtilizationFloat))
+			for _, el := range CPUUtilizationFloat {
+				CPUUtilization = append(CPUUtilization, metrics.Gauge(el))
+			}
+			a.metrics.CPUUtilization = CPUUtilization
+			a.mu.RUnlock()
+			a.ruler.rateLimitChan <- struct{}{}
 		}
 	}
 }
@@ -46,6 +83,11 @@ func (a *Agent) PostStats() {
 			a.mu.Lock()
 			metricsGauge := metrics.GetMetrics(a.metrics.MemStats)
 			metricsGauge[metrics.RandomValue] = a.metrics.RandomValue
+			metricsGauge[metrics.TotalMemory] = metrics.Gauge(a.metrics.VirtualMemory.Total)
+			metricsGauge[metrics.FreeMemory] = metrics.Gauge(a.metrics.VirtualMemory.Available)
+			for i, cpuMetric := range a.metrics.CPUUtilization {
+				metricsGauge[metrics.Metric(fmt.Sprintf("CPUutilization%d", i+1))] = cpuMetric
+			}
 			metricsCounter := map[metrics.Metric]metrics.Counter{
 				metrics.PollCount: a.metrics.PollCount,
 			}
@@ -116,6 +158,7 @@ func (a *Agent) PostStats() {
 
 func (a *Agent) Run() {
 	go a.GetStats()
+	go a.GetExtendedStats()
 	go a.PostStats()
 	<-a.cancel
 }

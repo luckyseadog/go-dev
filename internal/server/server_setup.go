@@ -18,7 +18,7 @@ type EnvVariables struct {
 	Dir            string
 	SecretKey      []byte
 	DataSourceName string
-	IsLog          bool
+	Logging          bool
 }
 
 func SetUp() (*EnvVariables, error) {
@@ -28,7 +28,7 @@ func SetUp() (*EnvVariables, error) {
 	var restoreStrFlag string
 	var secretKeyFlag string
 	var dataSourceNameFlag string
-	var isLog bool
+	var logging bool
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
@@ -36,7 +36,7 @@ func SetUp() (*EnvVariables, error) {
 	flag.StringVar(&restoreStrFlag, "r", "true", "if it is needed to load metrics from the past")
 	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
 	flag.StringVar(&dataSourceNameFlag, "d", "", "for accessing the underlying datastore")
-	flag.BoolVar(&isLog, "l", false, "whether to save log to file")
+	flag.BoolVar(&logging, "log", false, "whether to save log to file")
 	flag.Parse()
 
 	address := os.Getenv("ADDRESS")
@@ -101,7 +101,7 @@ func SetUp() (*EnvVariables, error) {
 		Dir:            filepath.Dir(storeFile),
 		SecretKey:      []byte(secretKeyStr),
 		DataSourceName: dataSourceNameStr,
-		IsLog:          isLog,
+		Logging:        logging,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {

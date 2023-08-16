@@ -4,14 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"sync"
-
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
 type SQLStorage struct {
 	DB *sql.DB
-	mu sync.RWMutex
 }
 
 func (ss *SQLStorage) CreateTables() error {
@@ -35,8 +32,6 @@ func (ss *SQLStorage) CreateTables() error {
 }
 
 func (ss *SQLStorage) StoreContext(ctx context.Context, metric metrics.Metric, metricValue any) error {
-	ss.mu.RLock()
-	defer ss.mu.RUnlock()
 	queryGauge := `
        INSERT INTO gauge (metric, val)
        VALUES ($1, $2)
@@ -81,8 +76,6 @@ func (ss *SQLStorage) StoreContext(ctx context.Context, metric metrics.Metric, m
 }
 
 func (ss *SQLStorage) LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result {
-	ss.mu.RLock()
-	defer ss.mu.RUnlock()
 	if metricType == "gauge" {
 		var valueGauge metrics.Gauge
 		row := ss.DB.QueryRowContext(ctx, `SELECT val FROM gauge WHERE gauge.metric = $1`, metric)
@@ -105,8 +98,6 @@ func (ss *SQLStorage) LoadContext(ctx context.Context, metricType string, metric
 }
 
 func (ss *SQLStorage) LoadDataGaugeContext(ctx context.Context) Result {
-	ss.mu.RLock()
-	defer ss.mu.RUnlock()
 	rowsGauge, err := ss.DB.QueryContext(ctx, `SELECT metric, val FROM gauge`)
 	copyDataGauge := make(map[metrics.Metric]metrics.Gauge)
 	if err != nil {
@@ -132,8 +123,6 @@ func (ss *SQLStorage) LoadDataGaugeContext(ctx context.Context) Result {
 }
 
 func (ss *SQLStorage) LoadDataCounterContext(ctx context.Context) Result {
-	ss.mu.RLock()
-	defer ss.mu.RUnlock()
 	rowsCounter, err := ss.DB.QueryContext(ctx, `SELECT metric, val FROM counter`)
 	copyDataCounter := make(map[metrics.Metric]metrics.Counter)
 	if err != nil {
@@ -159,7 +148,7 @@ func (ss *SQLStorage) LoadDataCounterContext(ctx context.Context) Result {
 }
 
 func NewSQLStorage(db *sql.DB) *SQLStorage {
-	return &SQLStorage{DB: db, mu: sync.RWMutex{}}
+	return &SQLStorage{DB: db}
 }
 
 //func (ss *SQLStorage) StoreList(metricsList []metrics.Metrics) error {
