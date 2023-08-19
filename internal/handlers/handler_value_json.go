@@ -70,7 +70,9 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 			}
 			valueFloat64 := float64(res.Value.(metrics.Gauge))
 			metricsCurrent[i].Value = &valueFloat64
-			metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:gauge:%f", metricsCurrent[i].ID, valueFloat64), key)
+			if len(key) > 0 {
+				metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:gauge:%f", metricsCurrent[i].ID, valueFloat64), key)
+			}
 		case "counter":
 			res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricID))
 			if res.Err != nil {
@@ -79,7 +81,9 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 			}
 			valueInt64 := int64(res.Value.(metrics.Counter))
 			metricsCurrent[i].Delta = &valueInt64
-			metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:counter:%d", metricsCurrent[i].ID, valueInt64), key)
+			if len(key) > 0 {
+				metricsCurrent[i].Hash = security.Hash(fmt.Sprintf("%s:counter:%d", metricsCurrent[i].ID, valueInt64), key)
+			}
 		default:
 			http.Error(w, "HandlerValueJSON: Not allowed type", http.StatusNotImplemented)
 			return
