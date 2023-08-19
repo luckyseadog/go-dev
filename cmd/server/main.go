@@ -1,7 +1,10 @@
+// This file contains the main function for the server application.
+// The server stores the metrics received from the agent.
 package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/pprof"
@@ -18,11 +21,17 @@ import (
 )
 
 func main() {
+	// SetUp initializes environment variables for the application based on command-line flags and environment variables.
+	// It returns an EnvVariables struct with the configured values.
+	// If any configuration error occurs, it returns an error.
 	envVariables, err := server.SetUp()
 	if err != nil {
 		server.MyLog.Fatal(err)
 	}
 
+	// If logging is enabled in the environment variables configuration:
+	// - Open or create the "server.log" file for writing logs.
+	// - Set up the server's logger to write to the log file with timestamp and file information.
 	if envVariables.Logging {
 		flog, err := os.OpenFile(`server.log`, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 		if err == nil {
@@ -33,9 +42,12 @@ func main() {
 		}
 	}
 
+	// The initialization of Storage
 	var s storage.Storage
 
+	// If envVariables.DataSourceName is set, SQLStorage will be used, MyStorage otherwise.
 	if envVariables.DataSourceName != "" {
+		// Open a database connection based on the provided data source name.
 		var err error
 		db, err := sql.Open("pgx", envVariables.DataSourceName)
 		if err != nil {
@@ -43,7 +55,10 @@ func main() {
 		}
 		defer db.Close()
 
+		// Create a new storage of type SQLStorage that will be used for storing metrics.
 		s = storage.NewSQLStorage(db)
+
+		// Perform table creation for SQL storage, if applicable.
 		if ss, ok := s.(*storage.SQLStorage); ok {
 			err = ss.CreateTables()
 			if err != nil {
@@ -53,13 +68,18 @@ func main() {
 			server.MyLog.Fatal(storage.ErrNotSQLStorage)
 		}
 	} else {
+		// Create a new storage of type MyStorage that will be used for storing metrics.
+		// MyStorage uses chanel for storing metrics to file.
 		storageChan := make(chan struct{})
 		cancel := make(chan struct{})
 		defer close(cancel)
 
 		s = storage.NewStorage(storageChan, envVariables.StoreInterval)
+
+		// Start a goroutine that saves metrics from MyStorage to file.
 		server.PassSignal(cancel, storageChan, envVariables, s)
 
+		// If previous metrics should be restored from a file, the program will use LoadFromFile function.
 		if envVariables.Restore {
 			if _, err := os.Stat(envVariables.StoreFile); err == nil {
 				if ms, ok := s.(*storage.MyStorage); ok {
@@ -74,13 +94,17 @@ func main() {
 		}
 	}
 
+	// Create a new Chi router instance.
 	r := chi.NewRouter()
+
+	// Attach middleware to the router.
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.GzipMiddleware)
 
+	// Define routes and handlers for various endpoints.
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		handlers.HandlerDefault(w, r, s)
 	})
@@ -136,7 +160,11 @@ func main() {
 		})
 	})
 
+	fmt.Println(envVariables.Address)
+	// Create a new server instance with the provided address and router.
 	srv := server.NewServer(envVariables.Address, r)
 	defer srv.Close()
+
+	// Start the server's operation.
 	srv.Run()
 }
