@@ -6,12 +6,17 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+// ExitCheckAnalyzer is a static analysis tool that checks whether the main package
+// uses the os.Exit function for program termination.
 var ExitCheckAnalyzer = &analysis.Analyzer{
 	Name: "exitcheck",
 	Doc:  "check that main package don't use os.Exit",
 	Run:  run,
 }
 
+// run is the main entry point for the analysis performed by ExitCheckAnalyzer.
+// It inspects the abstract syntax tree (AST) of the program's source code to
+// identify any occurrences of os.Exit within the main package.
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		if file.Name.Name == "main" {
