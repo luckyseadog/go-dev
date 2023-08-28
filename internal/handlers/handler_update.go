@@ -10,6 +10,20 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
+// HandlerUpdate is an HTTP handler that responds to POST requests by soring metric into the storage.
+// It stores metric into the storage by retrieving URL parameters and generates an JSON response
+// containing the new value of metric.
+// The function checks for errors while retrieving metrics and writing to the response, returning appropriate HTTP error
+// responses in case of errors.
+//
+// Parameters:
+//   - w: The http.ResponseWriter to write the HTTP response.
+//   - r: The http.Request received from the client.
+//   - storage: An instance of storage.Storage used to retrieve metric data.
+//
+// Notes:
+//   - Only POST requests are allowed. For other request methods, the function responds with a "Method Not Allowed" error.
+//   - The function generates an JSON response containing metric value.
 func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "HandlerUpdate: Only POST requests are allowed!", http.StatusMethodNotAllowed)

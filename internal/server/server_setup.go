@@ -18,7 +18,7 @@ type EnvVariables struct {
 	Dir            string
 	SecretKey      []byte
 	DataSourceName string
-	Logging          bool
+	Logging        bool
 }
 
 func SetUp() (*EnvVariables, error) {

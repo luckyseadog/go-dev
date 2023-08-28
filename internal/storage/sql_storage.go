@@ -1,16 +1,43 @@
+// Package storage provides functionalities for keeping data on server
+// this package have two types of storage:
+// - MyStorage that keeps data in map and periodically saves it to file
+// - SQLStorage that keeps data as SQL database
 package storage
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
+// SQLStorage holds metrics as SQL Database.
 type SQLStorage struct {
 	DB *sql.DB
 }
 
+// NewSQLStorage initializes a new instance of SQLStorage.
+// It returns a pointer to the initialized SQLStorage.
+//
+// Parameters:
+// - db: The database to connect.
+//
+// Returns:
+// -A pointer to the initialized SQLStorage
+func NewSQLStorage(db *sql.DB) *SQLStorage {
+	return &SQLStorage{DB: db}
+}
+
+// CreateTables creates the necessary database tables if they do not already exist.
+// It creates tables named 'gauge' and 'counter' for storing gauge and counter metrics respectively.
+// If the tables already exist, this function does nothing.
+//
+// Parameters:
+//   - ss: A pointer to an initialized SQLStorage instance.
+//
+// Returns:
+//   - An error if there was a problem creating the tables; otherwise, it returns nil.
 func (ss *SQLStorage) CreateTables() error {
 	_, err := ss.DB.ExecContext(context.Background(), `CREATE TABLE IF NOT EXISTS gauge (
 				  metric VARCHAR(100) UNIQUE,
@@ -31,6 +58,16 @@ func (ss *SQLStorage) CreateTables() error {
 	return nil
 }
 
+// StoreContext stores a metric value associated with the given metric key in the storage.
+// It operates within the provided context, allowing for cancellation and timeout management.
+//
+// Parameters:
+//   - ctx: The context in which the operation should be performed.
+//   - metric: The metric key associated with the value to be stored.
+//   - metricValue: The value to be stored for the specified metric key.
+//
+// Returns:
+//   - An error if the storage operation fails or if the context is canceled.
 func (ss *SQLStorage) StoreContext(ctx context.Context, metric metrics.Metric, metricValue any) error {
 	queryGauge := `
        INSERT INTO gauge (metric, val)
@@ -75,6 +112,16 @@ func (ss *SQLStorage) StoreContext(ctx context.Context, metric metrics.Metric, m
 	}
 }
 
+// LoadContext retrieves the value of a specific metric associated with the provided metric type and key from the storage.
+// It operates within the provided context, allowing for cancellation and timeout management.
+//
+// Parameters:
+//   - ctx: The context in which the operation should be performed.
+//   - metricType: The type of metric to load ("gauge" or "counter").
+//   - metric: The metric key associated with the value to be retrieved.
+//
+// Returns:
+//   - A Result containing the retrieved metric value and any associated error.
 func (ss *SQLStorage) LoadContext(ctx context.Context, metricType string, metric metrics.Metric) Result {
 	if metricType == "gauge" {
 		var valueGauge metrics.Gauge
@@ -97,6 +144,14 @@ func (ss *SQLStorage) LoadContext(ctx context.Context, metricType string, metric
 	}
 }
 
+// LoadDataGaugeContext retrieves a copy of the data stored in the gauge metrics of the storage.
+// It operates within the provided context, allowing for cancellation and timeout management.
+//
+// Parameters:
+//   - ctx: The context in which the operation should be performed.
+//
+// Returns:
+//   - A Result containing the retrieved copy of gauge metric data and any associated error.
 func (ss *SQLStorage) LoadDataGaugeContext(ctx context.Context) Result {
 	rowsGauge, err := ss.DB.QueryContext(ctx, `SELECT metric, val FROM gauge`)
 	copyDataGauge := make(map[metrics.Metric]metrics.Gauge)
@@ -122,6 +177,14 @@ func (ss *SQLStorage) LoadDataGaugeContext(ctx context.Context) Result {
 	return Result{Value: copyDataGauge, Err: nil}
 }
 
+// LoadDataCounterContext retrieves a copy of the data stored in the counter metrics of the storage.
+// It operates within the provided context, allowing for cancellation and timeout management.
+//
+// Parameters:
+//   - ctx: The context in which the operation should be performed.
+//
+// Returns:
+//   - A Result containing the retrieved copy of counter metric data and any associated error.
 func (ss *SQLStorage) LoadDataCounterContext(ctx context.Context) Result {
 	rowsCounter, err := ss.DB.QueryContext(ctx, `SELECT metric, val FROM counter`)
 	copyDataCounter := make(map[metrics.Metric]metrics.Counter)
@@ -146,141 +209,3 @@ func (ss *SQLStorage) LoadDataCounterContext(ctx context.Context) Result {
 	}
 	return Result{Value: copyDataCounter, Err: nil}
 }
-
-func NewSQLStorage(db *sql.DB) *SQLStorage {
-	return &SQLStorage{DB: db}
-}
-
-//func (ss *SQLStorage) StoreList(metricsList []metrics.Metrics) error {
-//	ss.mu.RLock()
-//	defer ss.mu.RUnlock()
-//
-//	tx, err := ss.DB.Begin()
-//	if err != nil {
-//		return err
-//	}
-//	defer tx.Rollback()
-//
-//	stmtGauge, err := tx.PrepareContext(context.Background(), `
-//       INSERT INTO gauge (metric, val)
-//       VALUES ($1, $2)
-//       ON CONFLICT (metric)
-//       DO UPDATE SET val = EXCLUDED.val;
-//   `)
-//	if err != nil {
-//		return err
-//	}
-//	defer stmtGauge.Close()
-//
-//	stmtCounter, err := tx.PrepareContext(context.Background(), `
-//       INSERT INTO counter (metric, val)
-//       VALUES ($1, $2)
-//       ON CONFLICT (metric)
-//       DO UPDATE SET val = counter.val + EXCLUDED.val;
-//   `)
-//	if err != nil {
-//		return err
-//	}
-//	defer stmtCounter.Close()
-//
-//	for _, metric := range metricsList {
-//		if metric.Value != nil {
-//			if _, err = stmtGauge.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Value); err != nil {
-//				return err
-//			}
-//		} else if metric.Delta != nil {
-//			if _, err = stmtCounter.ExecContext(context.Background(), stmtGauge, metric.ID, metric.Delta); err != nil {
-//				return err
-//			}
-//		} else {
-//			return errNoData
-//		}
-//	}
-//	return tx.Commit()
-//}
-
-//func (s *MyStorage) LoadFromDB(db *sql.DB) error {
-//	rowsGauge, err := db.QueryContext(context.Background(), `SELECT metric, val FROM gauge`)
-//	if err != nil {
-//		return err
-//	}
-//	defer rowsGauge.Close()
-//
-//	for rowsGauge.Next() {
-//		var metric metrics.Metric
-//		var val metrics.Gauge
-//
-//		err = rowsGauge.Scan(&metric, &val)
-//		if err != nil {
-//			return err
-//		}
-//		err = s.Store(metric, val)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	if rowsGauge.Err() != nil {
-//		return rowsGauge.Err()
-//	}
-//
-//	rowsCounter, err := db.QueryContext(context.Background(), `SELECT metric, val FROM counter`)
-//	if err != nil {
-//		return err
-//	}
-//	defer rowsCounter.Close()
-//
-//	for rowsCounter.Next() {
-//		var metric metrics.Metric
-//		var val metrics.Counter
-//
-//		err = rowsCounter.Scan(&metric, &val)
-//		if err != nil {
-//			return err
-//		}
-//		err = s.Store(metric, val)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	if rowsCounter.Err() != nil {
-//		return rowsCounter.Err()
-//	}
-//
-//	return nil
-//}
-//
-//func (s *MyStorage) SaveToDB(db *sql.DB) error {
-//	s.mu.Lock()
-//	defer s.mu.Unlock()
-//
-//	queryGauge := `
-//       INSERT INTO gauge (metric, val)
-//       VALUES ($1, $2)
-//       ON CONFLICT (metric)
-//       DO UPDATE SET val = EXCLUDED.val;
-//   `
-//
-//	for metric, val := range s.DataGauge {
-//		_, err := db.ExecContext(context.Background(), queryGauge, metric, val)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	queryCounter := `
-//       INSERT INTO counter (metric, val)
-//       VALUES ($1, $2)
-//       ON CONFLICT (metric)
-//       DO UPDATE SET val = EXCLUDED.val;
-//   `
-//
-//	for metric, val := range s.DataCounter {
-//		_, err := db.ExecContext(context.Background(), queryCounter, metric, val)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	return nil
-//}

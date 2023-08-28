@@ -3,7 +3,9 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +18,7 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
-func setupRoutes(s storage.Storage) *chi.Mux {
+func setupRoutes(s storage.Storage, key []byte) *chi.Mux {
 	r := chi.NewRouter()
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		HandlerDefault(w, r, s)
@@ -26,10 +28,10 @@ func setupRoutes(s storage.Storage) *chi.Mux {
 	})
 	r.Route("/value", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			HandlerValueJSON(w, r, s, []byte{})
+			HandlerValueJSON(w, r, s, key)
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			HandlerValueJSON(w, r, s, []byte{})
+			HandlerValueJSON(w, r, s, key)
 		})
 	})
 
@@ -38,18 +40,18 @@ func setupRoutes(s storage.Storage) *chi.Mux {
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			HandlerUpdateJSON(w, r, s, []byte{})
+			HandlerUpdateJSON(w, r, s, key)
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			HandlerUpdateJSON(w, r, s, []byte{})
+			HandlerUpdateJSON(w, r, s, key)
 		})
 	})
 	r.Route("/updates", func(r chi.Router) {
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			HandlerUpdatesJSON(w, r, s, []byte{})
+			HandlerUpdatesJSON(w, r, s, key)
 		})
 		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			HandlerUpdatesJSON(w, r, s, []byte{})
+			HandlerUpdatesJSON(w, r, s, key)
 		})
 	})
 
@@ -74,7 +76,7 @@ func TestHandlerDefault(t *testing.T) {
 		},
 	}
 	s := storage.NewStorage(nil, time.Second)
-	r := setupRoutes(s)
+	r := setupRoutes(s, []byte{})
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -130,7 +132,7 @@ func TestHandlerGet(t *testing.T) {
 	s.DataCounter = map[metrics.Metric]metrics.Counter{
 		"Counter": 10,
 	}
-	r := setupRoutes(s)
+	r := setupRoutes(s, []byte{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -191,7 +193,7 @@ func TestHandlerUpdate(t *testing.T) {
 		},
 	}
 	s := storage.NewStorage(nil, time.Second)
-	r := setupRoutes(s)
+	r := setupRoutes(s, []byte{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -230,7 +232,7 @@ func TestHandlerUpdateJSON(t *testing.T) {
 		},
 	}
 	s := storage.NewStorage(nil, time.Second)
-	r := setupRoutes(s)
+	r := setupRoutes(s, []byte{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -272,7 +274,7 @@ func TestHandlerUpdatesJSON(t *testing.T) {
 		},
 	}
 	s := storage.NewStorage(nil, time.Second)
-	r := setupRoutes(s)
+	r := setupRoutes(s, []byte{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -354,7 +356,7 @@ func TestHandlerValueJSON(t *testing.T) {
 	s.DataCounter = map[metrics.Metric]metrics.Counter{
 		"Counter": 10,
 	}
-	r := setupRoutes(s)
+	r := setupRoutes(s, []byte{})
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -373,4 +375,49 @@ func TestHandlerValueJSON(t *testing.T) {
 		})
 	}
 
+}
+
+func BenchmarkHandlerUpdatesJSON(b *testing.B) {
+	s := storage.NewStorage(nil, time.Second)
+	r := setupRoutes(s, []byte("some key"))
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		body := []byte(fmt.Sprintf(`[{"id":"Alloc1", "type":"gauge", "value":%f},
+									{"id":"Counter1", "type":"counter", "delta":%d}]`, rand.Float64(), rand.Int()))
+		request := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/updates/", bytes.NewBuffer(body))
+		w := httptest.NewRecorder()
+		b.StartTimer()
+		r.ServeHTTP(w, request)
+	}
+}
+
+func BenchmarkHandlerValueJSON(b *testing.B) {
+	s := storage.NewStorage(nil, time.Second)
+	s.DataGauge = map[metrics.Metric]metrics.Gauge{
+		"Malloc": 10.0,
+	}
+	s.DataCounter = map[metrics.Metric]metrics.Counter{
+		"Counter": 10,
+	}
+	r := setupRoutes(s, []byte{})
+	metrics := []metrics.Metrics{
+		{
+			ID:    "Malloc",
+			MType: "gauge",
+		},
+		{
+			ID:    "Counter",
+			MType: "counter",
+		},
+	}
+	query, _ := json.Marshal(metrics)
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		request := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/value/", bytes.NewBuffer(query))
+		w := httptest.NewRecorder()
+		b.StartTimer()
+		r.ServeHTTP(w, request)
+	}
 }
