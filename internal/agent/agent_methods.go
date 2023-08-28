@@ -19,6 +19,16 @@ import (
 	"github.com/luckyseadog/go-dev/internal/security"
 )
 
+// GetStats retrieves metrics into metrics filed of struct Agent
+
+// GetStats periodically collects and updates basic metric statistics.
+// This method runs in the background as a goroutine.
+//
+// It reads memory statistics using runtime.ReadMemStats, generates a random value for testing purposes,
+// and increments the poll count metric. The collected metrics are updated in the agent's Metrics field.
+// The method respects rate limiting to control the frequency of metric collection.
+//
+// The method continues running until the agent's cancel signal is received.
 func (a *Agent) GetStats() {
 	ticker := time.NewTicker(a.ruler.pollInterval)
 	defer ticker.Stop()
@@ -39,6 +49,13 @@ func (a *Agent) GetStats() {
 	}
 }
 
+// GetExtendedStats periodically collects and updates extended metric statistics.
+// This method runs in the background as a goroutine.
+//
+// It reads VirtualMemory statistics using mem.VirtualMemory function and
+// CPU utilization statistics using cpu.Percent function.
+//
+// The method continues running until the agent's cancel signal is received.
 func (a *Agent) GetExtendedStats() {
 	ticker := time.NewTicker(a.ruler.pollInterval)
 	defer ticker.Stop()
@@ -71,6 +88,17 @@ func (a *Agent) GetExtendedStats() {
 	}
 }
 
+// PostStats periodically sends collected metrics to server using HTTP client.
+// This method runs in the background as a goroutine.
+//
+// It sends collected metrics as two maps:
+// - metricsGauge
+// - metricsCounter
+//
+// It assembles the collected metrics into JSON format and sends them to the server's update endpoint.
+// The method calculates and attaches a hash to each metric for data integrity verification.
+//
+// The method continues running until the agent's cancel signal is received.
 func (a *Agent) PostStats() {
 	ticker := time.NewTicker(a.ruler.reportInterval)
 	defer ticker.Stop()
@@ -156,6 +184,10 @@ func (a *Agent) PostStats() {
 	}
 }
 
+// Run launches goroutines to collect and report metrics.
+// And then waits for cancellation.
+//
+// It could be used simultaneously with Stop command.
 func (a *Agent) Run() {
 	go a.GetStats()
 	go a.GetExtendedStats()
@@ -163,6 +195,7 @@ func (a *Agent) Run() {
 	<-a.cancel
 }
 
+// Stop sends signal to Agent to stop collecting metrics.
 func (a *Agent) Stop() {
 	close(a.cancel)
 }

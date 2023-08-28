@@ -9,6 +9,15 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
+// HandlerGet is an HTTP handler that responds to GET requests by sending required metric.
+// It gets required metric by parsing URL, where should be parameters such as metricType and metricName.
+// The function checks for errors while retrieving metrics and writing to the response, returning appropriate HTTP error
+// responses in case of errors.
+//
+// Parameters:
+//   - w: The http.ResponseWriter to write the HTTP response.
+//   - r: The http.Request received from the client.
+//   - storage: An instance of storage.Storage used to retrieve metric data.
 func HandlerGet(w http.ResponseWriter, r *http.Request, storage storage.Storage) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "HandlerGet: Only GET requests are allowed!", http.StatusMethodNotAllowed)

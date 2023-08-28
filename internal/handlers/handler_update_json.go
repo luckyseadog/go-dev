@@ -14,6 +14,20 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
+// HandlerUpdateJSON is an HTTP handler that responds to POST requests by processing JSON-encoded metric data
+// and storing it into the specified storage. It performs verification of the provided metric data integrity
+// using a digital signature (if a secret key is provided).
+//
+// Parameters:
+//   - w: http.ResponseWriter to write the response.
+//   - r: *http.Request containing the incoming request data.
+//   - storage: Storage instance to store the metric data.
+//   - key: Secret key used for digital signature verification.
+//
+// Notes:
+//   - For making requests through this method the agent should send JSON array with id and type and
+//
+// delta or value fields for consistency with Metrics.
 func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.Storage, key []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
