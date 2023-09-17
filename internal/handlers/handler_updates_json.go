@@ -39,7 +39,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "HandlerUpdatesJSON: Read body error", http.StatusBadRequest)
+		http.Error(w, "HandlerUpdatesJSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -48,7 +48,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 
 	err = json.Unmarshal(body, &metricsCurrent)
 	if err != nil {
-		http.Error(w, "HandlerUpdatesJSON: unmarshal error", http.StatusBadRequest)
+		http.Error(w, "HandlerUpdatesJSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -79,7 +79,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 			}
 			err = storage.StoreContext(r.Context(), metrics.Metric(metric.ID), metrics.Gauge(*metric.Value))
 			if err != nil {
-				http.Error(w, "HandlerUpdatesJSON: Could not store gauge", http.StatusInternalServerError)
+				http.Error(w, "HandlerUpdatesJSON: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 
@@ -108,7 +108,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 			}
 			err = storage.StoreContext(r.Context(), metrics.Metric(metric.ID), metrics.Counter(*metric.Delta))
 			if err != nil {
-				http.Error(w, "HandlerUpdatesJSON: Could not store counter", http.StatusInternalServerError)
+				http.Error(w, "HandlerUpdatesJSON: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 
@@ -144,7 +144,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 	jsonData, err := json.Marshal(metricsAnswer)
 
 	if err != nil {
-		http.Error(w, "HandlerUpdatesJSON: Error in making response", http.StatusInternalServerError)
+		http.Error(w, "HandlerUpdatesJSON: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -152,7 +152,7 @@ func HandlerUpdatesJSON(w http.ResponseWriter, r *http.Request, storage storage.
 	_, err = w.Write(jsonData)
 
 	if err != nil {
-		http.Error(w, "HandlerUpdatesJSON: Error in making response", http.StatusInternalServerError)
+		http.Error(w, "HandlerUpdatesJSON: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

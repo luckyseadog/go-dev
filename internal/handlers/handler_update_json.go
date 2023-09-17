@@ -37,7 +37,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "HandlerUpdateJSON: Read body error", http.StatusBadRequest)
+		http.Error(w, "HandlerUpdateJSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -46,7 +46,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 	err = json.Unmarshal(body, &metricCurrent)
 	if err != nil {
-		http.Error(w, "HandlerUpdateJSON: unmarshal error", http.StatusBadRequest)
+		http.Error(w, "HandlerUpdateJSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -75,7 +75,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 		err = storage.StoreContext(r.Context(), metrics.Metric(metricCurrent.ID), metrics.Gauge(*metricCurrent.Value))
 		if err != nil {
-			http.Error(w, "HandlerUpdateJSON: Could not store gauge", http.StatusInternalServerError)
+			http.Error(w, "HandlerUpdateJSON: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -105,7 +105,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 		err = storage.StoreContext(r.Context(), metrics.Metric(metricCurrent.ID), metrics.Counter(*metricCurrent.Delta))
 		if err != nil {
-			http.Error(w, "HandlerUpdateJSON: Could not store counter", http.StatusInternalServerError)
+			http.Error(w, "HandlerUpdateJSON: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -118,7 +118,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 	res := storage.LoadContext(r.Context(), metricCurrent.MType, metrics.Metric(metricCurrent.ID))
 	if res.Err != nil {
-		http.Error(w, "HandlerUpdateJSON: Load error", http.StatusInternalServerError)
+		http.Error(w, "HandlerUpdateJSON: "+res.Err.Error(), http.StatusInternalServerError)
 		return
 	}
 	switch metricCurrent.MType {
@@ -137,7 +137,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 
 	jsonData, err := json.Marshal(metricsAnswer)
 	if err != nil {
-		http.Error(w, "HandlerUpdateJSON: Error in making response", http.StatusInternalServerError)
+		http.Error(w, "HandlerUpdateJSON: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -145,7 +145,7 @@ func HandlerUpdateJSON(w http.ResponseWriter, r *http.Request, storage storage.S
 	_, err = w.Write(jsonData)
 
 	if err != nil {
-		http.Error(w, "HandlerUpdateJSON: Error in making response", http.StatusInternalServerError)
+		http.Error(w, "HandlerUpdateJSON: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

@@ -48,7 +48,7 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 		}
 		err = storage.StoreContext(r.Context(), metric, metrics.Gauge(metricValue))
 		if err != nil {
-			http.Error(w, "HandlerUpdate: error in storage.Store", http.StatusInternalServerError)
+			http.Error(w, "HandlerUpdate: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -85,7 +85,7 @@ func HandlerUpdate(w http.ResponseWriter, r *http.Request, storage storage.Stora
 
 		err = storage.StoreContext(r.Context(), metric, metrics.Counter(metricValue))
 		if err != nil {
-			http.Error(w, "HandlerUpdate: error in storage.Store", http.StatusInternalServerError)
+			http.Error(w, "HandlerUpdate: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 

@@ -33,7 +33,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "HandlerValueJSON: Read body error", http.StatusBadRequest)
+		http.Error(w, "HandlerValueJSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -46,7 +46,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 		var metric metrics.Metrics
 		err = json.Unmarshal(body, &metric)
 		if err != nil {
-			http.Error(w, "HandlerValueJSON: unmarshal error", http.StatusBadRequest)
+			http.Error(w, "HandlerValueJSON: "+err.Error(), http.StatusBadRequest)
 			return
 		} else {
 			isPackData = false
@@ -76,7 +76,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 		case "counter":
 			res := storage.LoadContext(r.Context(), metricType, metrics.Metric(metricID))
 			if res.Err != nil {
-				http.Error(w, "HandlerValueJSON: No such metric", http.StatusNotFound)
+				http.Error(w, "HandlerValueJSON: "+res.Err.Error(), http.StatusNotFound)
 				return
 			}
 			valueInt64 := int64(res.Value.(metrics.Counter))
@@ -98,7 +98,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 	}
 
 	if err != nil {
-		http.Error(w, "HandlerValueJSON: Error in making response", http.StatusInternalServerError)
+		http.Error(w, "HandlerValueJSON: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -106,7 +106,7 @@ func HandlerValueJSON(w http.ResponseWriter, r *http.Request, storage storage.St
 	_, err = w.Write(jsonData)
 
 	if err != nil {
-		http.Error(w, "HandlerValueJSON: Error in making response", http.StatusInternalServerError)
+		http.Error(w, "HandlerValueJSON: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

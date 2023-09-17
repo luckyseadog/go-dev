@@ -31,7 +31,7 @@ func HandlerPing(w http.ResponseWriter, r *http.Request, s storage.Storage) {
 
 	err := ss.DB.Ping()
 	if err != nil {
-		http.Error(w, "HandlerPing: DataBase is not available", http.StatusInternalServerError)
+		http.Error(w, "HandlerPing: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

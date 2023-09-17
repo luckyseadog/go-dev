@@ -20,6 +20,18 @@ import (
 	"github.com/luckyseadog/go-dev/internal/storage"
 )
 
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
+func init() {
+	fmt.Fprintf(os.Stdout, "Build version: %s\n", buildVersion)
+	fmt.Fprintf(os.Stdout, "Build date: %s\n", buildDate)
+	fmt.Fprintf(os.Stdout, "Build commit: %s\n", buildCommit)
+}
+
 func main() {
 	// SetUp initializes environment variables for the application based on command-line flags and environment variables.
 	// It returns an EnvVariables struct with the configured values.
