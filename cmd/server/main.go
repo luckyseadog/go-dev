@@ -11,6 +11,7 @@ import (
 	"os"
 	"crypto/tls"
 	"path"
+	"crypto/x509"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -180,16 +181,24 @@ func main() {
 	var srv *server.Server
 	if envVariables.CryptoKeyDir != "" {
 		serverTLSCert, err := tls.LoadX509KeyPair(
-			path.Join(envVariables.CryptoKeyDir, "certServer.pem"),
-			path.Join(envVariables.CryptoKeyDir, "privateKeyServer.pem"),
+			path.Join(envVariables.CryptoKeyDir, "server/certServer.pem"),
+			path.Join(envVariables.CryptoKeyDir, "server/privateKeyServer.pem"),
 		)
 
 		if err != nil {
-			log.Fatalf("Error loading certificate and key file: %v", err)
+			server.MyLog.Fatalf("Error loading certificate and key file: %v", err)
 		}
-		
+
+		// Configure the server to trust TLS client cert issued by your CA.
+		certPool := x509.NewCertPool()
+		if caCertPEM, err := os.ReadFile(path.Join(envVariables.CryptoKeyDir, "root/certRoot.pem")); err != nil {
+			server.MyLog.Fatal(err)
+		} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
+			server.MyLog.Fatal("invalid cert in CA PEM")
+		}
 		tlsConfig := &tls.Config{
-			ClientAuth: tls.NoClientCert,
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    certPool,
 			Certificates: []tls.Certificate{serverTLSCert},
 		}
 

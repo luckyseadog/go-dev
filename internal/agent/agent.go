@@ -10,6 +10,8 @@ import (
 	"time"
 	"crypto/tls"
 	"path"
+	"crypto/x509"
+	"os"
 
 	"github.com/shirou/gopsutil/v3/mem"
 
@@ -83,17 +85,27 @@ func NewAgent(address string, contentType string, pollInterval time.Duration, re
 
 	var client *http.Client
 	if cryptoKeyDir != "" {
-		clientTLSCert, err := tls.LoadX509KeyPair(path.Join(cryptoKeyDir, "certAgent.pem"), path.Join(cryptoKeyDir, "privateKeyAgent.pem"))
+		clientTLSCert, err := tls.LoadX509KeyPair(path.Join(cryptoKeyDir, "agent/certAgent.pem"), path.Join(cryptoKeyDir, "agent/privateKeyAgent.pem"))
 		if err != nil {
-			log.Fatalf("Error loading certificate and key file: %v", err)
+			MyLog.Fatalf("Error loading certificate and key file: %v", err)
 			return nil
 		}
 
+		// Configure the client to trust TLS server certs issued by a CA.
+		certPool, err := x509.SystemCertPool()
+		if err != nil {
+			MyLog.Fatal(err)
+		}
+		if caCertPEM, err := os.ReadFile(path.Join(cryptoKeyDir, "root/certRoot.pem")); err != nil {
+			MyLog.Fatal(err)
+		} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
+			MyLog.Fatal("invalid cert in CA PEM")
+		}
 		tlsConfig := &tls.Config{
-			ClientAuth: tls.NoClientCert,
-			InsecureSkipVerify: true,
+			RootCAs:      certPool,
 			Certificates: []tls.Certificate{clientTLSCert},
 		}
+
 		tr := &http.Transport{
 			TLSClientConfig: tlsConfig,
 		}
