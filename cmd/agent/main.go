@@ -33,6 +33,7 @@ func main() {
 	var secretKeyFlag string         // secretKeyFlag is the secret key used for digital signature of metrics.
 	var rateLimitFlag string         // rateLimitFlag specifies the maximum number of concurrent requests that can be sent.
 	var logging bool                 // logging indicates whether to save log to the file agent.log.
+	var cryptoKeyFlag string
 
 	// Parse command-line flags and set corresponding variables.
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
@@ -41,6 +42,7 @@ func main() {
 	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
 	flag.StringVar(&rateLimitFlag, "l", "10", "how many concurrent requests could be sent")
 	flag.BoolVar(&logging, "log", false, "whether to save log to file agent.log")
+	flag.StringVar(&cryptoKeyFlag, "crypto-key", "", "whether to use asymmetric encoding")
 
 	// Parse the command-line flags.
 	flag.Parse()
@@ -61,6 +63,11 @@ func main() {
 		}
 	}
 
+	cryptoKeyDir := os.Getenv("CRYPTO_KEY")
+	if cryptoKeyDir == "" {
+		cryptoKeyDir = cryptoKeyFlag
+	}
+
 	// Retrieve configuration values from environment variables and command-line flags.
 	// If corresponding environment variables are set, they take precedence over command-line flags.
 
@@ -68,9 +75,17 @@ func main() {
 	// If not set, use the value provided by the command-line flag "-a".
 	address := os.Getenv("ADDRESS")
 	if address == "" {
-		address = "http://" + addressFlag
+		if cryptoKeyDir != "" {
+			address = "https://" + addressFlag
+		} else {
+			address = "http://" + addressFlag
+		}
 	} else {
-		address = "http://" + address
+		if cryptoKeyDir != "" {
+			address = "https://" + addressFlag
+		} else {
+			address = "http://" + addressFlag
+		}
 	}
 
 	// Set the content type for the requests to the server.
@@ -143,7 +158,7 @@ func main() {
 	// It uses the specified content type for requests, pollInterval for metric collection,
 	// reportInterval for sending metrics, secretKey for digital signature,
 	// and rateLimit for controlling the number of concurrent requests.
-	agent := agent.NewAgent(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit)
+	agent := agent.NewAgent(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
 
 	// Start the agent's operation. It begins collecting and reporting metrics based on the configured intervals.
 	agent.Run()

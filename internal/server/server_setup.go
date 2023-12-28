@@ -19,6 +19,7 @@ type EnvVariables struct {
 	SecretKey      []byte
 	DataSourceName string
 	Logging        bool
+	CryptoKeyDir 	string
 }
 
 func SetUp() (*EnvVariables, error) {
@@ -29,6 +30,7 @@ func SetUp() (*EnvVariables, error) {
 	var secretKeyFlag string
 	var dataSourceNameFlag string
 	var logging bool
+	var cryptoKeyFlag string
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
@@ -37,6 +39,7 @@ func SetUp() (*EnvVariables, error) {
 	flag.StringVar(&secretKeyFlag, "k", "", "secret key for digital signature")
 	flag.StringVar(&dataSourceNameFlag, "d", "", "for accessing the underlying datastore")
 	flag.BoolVar(&logging, "log", false, "whether to save log to file")
+	flag.StringVar(&cryptoKeyFlag, "crypto-key", "", "whether to use asymmetric encoding")
 	flag.Parse()
 
 	address := os.Getenv("ADDRESS")
@@ -94,6 +97,11 @@ func SetUp() (*EnvVariables, error) {
 		dataSourceNameStr = dataSourceNameFlag
 	}
 
+	cryptoKeyStr := os.Getenv("CRYPTO_KEY")
+	if cryptoKeyStr == ""{
+		cryptoKeyStr = cryptoKeyFlag
+	}
+
 	envVariables := &EnvVariables{Address: address,
 		StoreInterval:  storeInterval,
 		StoreFile:      storeFile,
@@ -102,6 +110,7 @@ func SetUp() (*EnvVariables, error) {
 		SecretKey:      []byte(secretKeyStr),
 		DataSourceName: dataSourceNameStr,
 		Logging:        logging,
+		CryptoKeyDir: 		cryptoKeyStr,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {

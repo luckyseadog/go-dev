@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"crypto/tls"
+	"path"
 
 	"github.com/shirou/gopsutil/v3/mem"
 
@@ -43,7 +45,7 @@ type Metrics struct {
 
 // Agent struct represents the monitoring agent responsible for collecting and reporting metrics.
 type Agent struct {
-	client  http.Client      // HTTP client responsible for sending metric updates.
+	client  *http.Client      // HTTP client responsible for sending metric updates.
 	metrics Metrics          // Metrics collected by the agent.
 	mu      sync.RWMutex     // Mutex for safe concurrent access to metrics.
 	cancel  chan struct{}    // Channel for signaling agent cancellation.
@@ -64,7 +66,7 @@ type Agent struct {
 //
 // Returns:
 //   - A pointer to a newly created and initialized Agent instance.
-func NewAgent(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int) *Agent {
+func NewAgent(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int, cryptoKeyDir string) *Agent {
 	rateLimitChan := make(chan struct{}, rateLimit)
 	for i := 0; i < rateLimit; i++ {
 		rateLimitChan <- struct{}{}
@@ -78,5 +80,26 @@ func NewAgent(address string, contentType string, pollInterval time.Duration, re
 		rateLimitChan:  rateLimitChan,
 	}
 	cancel := make(chan struct{})
-	return &Agent{client: http.Client{}, ruler: interactionRules, cancel: cancel}
+
+	var client *http.Client
+	if cryptoKeyDir != "" {
+		clientTLSCert, err := tls.LoadX509KeyPair(path.Join(cryptoKeyDir, "certAgent.pem"), path.Join(cryptoKeyDir, "privateKeyAgent.pem"))
+		if err != nil {
+			log.Fatalf("Error loading certificate and key file: %v", err)
+			return nil
+		}
+
+		tlsConfig := &tls.Config{
+			ClientAuth: tls.NoClientCert,
+			InsecureSkipVerify: true,
+			Certificates: []tls.Certificate{clientTLSCert},
+		}
+		tr := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+		client = &http.Client{Transport: tr}
+	} else {
+		client = &http.Client{}
+	}
+	return &Agent{client: client, ruler: interactionRules, cancel: cancel}
 }

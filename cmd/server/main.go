@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"crypto/tls"
+	"path"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -173,10 +175,30 @@ func main() {
 	})
 
 	fmt.Println(envVariables.Address)
-	// Create a new server instance with the provided address and router.
-	srv := server.NewServer(envVariables.Address, r)
-	defer srv.Close()
 
-	// Start the server's operation.
-	srv.Run()
+	// Create a new server instance with the provided address and router.
+	var srv *server.Server
+	if envVariables.CryptoKeyDir != "" {
+		serverTLSCert, err := tls.LoadX509KeyPair(
+			path.Join(envVariables.CryptoKeyDir, "certServer.pem"),
+			path.Join(envVariables.CryptoKeyDir, "privateKeyServer.pem"),
+		)
+
+		if err != nil {
+			log.Fatalf("Error loading certificate and key file: %v", err)
+		}
+		
+		tlsConfig := &tls.Config{
+			ClientAuth: tls.NoClientCert,
+			Certificates: []tls.Certificate{serverTLSCert},
+		}
+
+		srv = server.NewServerTLS(envVariables.Address, r, tlsConfig)
+		defer srv.Close()
+		srv.RunTLS()
+	} else {
+		srv = server.NewServer(envVariables.Address, r)
+		defer srv.Close()
+		srv.Run()
+	}
 }
