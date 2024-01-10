@@ -11,6 +11,9 @@ import (
 	"net/url"
 	"runtime"
 	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
@@ -192,6 +195,14 @@ func (a *Agent) Run() {
 	go a.GetStats()
 	go a.GetExtendedStats()
 	go a.PostStats()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func(stop chan os.Signal) {
+		<-stop
+		a.Stop()
+	}(stop)
+
 	<-a.cancel
 }
 
