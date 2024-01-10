@@ -9,8 +9,10 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"encoding/json"
 
 	"github.com/luckyseadog/go-dev/internal/agent"
+	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
 var (
@@ -34,6 +36,8 @@ func main() {
 	var rateLimitFlag string         // rateLimitFlag specifies the maximum number of concurrent requests that can be sent.
 	var logging bool                 // logging indicates whether to save log to the file agent.log.
 	var cryptoKeyFlag string
+	var configFlag string
+	var cFlag string
 
 	// Parse command-line flags and set corresponding variables.
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
@@ -43,9 +47,54 @@ func main() {
 	flag.StringVar(&rateLimitFlag, "l", "10", "how many concurrent requests could be sent")
 	flag.BoolVar(&logging, "log", false, "whether to save log to file agent.log")
 	flag.StringVar(&cryptoKeyFlag, "crypto-key", "", "whether to use asymmetric encoding")
+	flag.StringVar(&configFlag, "config", "", "path to config")
+	flag.StringVar(&cFlag, "c", "", "path to config")
 
 	// Parse the command-line flags.
 	flag.Parse()
+
+	var configPath string
+	configStr := os.Getenv("CONFIG")
+	if configStr == "" {
+		if configFlag != "" {
+			configPath = configFlag
+		} else {
+			configPath = cFlag
+		}
+	} else  {
+		configPath = configStr
+	}
+
+
+	var Config metrics.ConfigAgent
+	if configPath != "" {
+		f, err := os.ReadFile(configPath)
+		if err != nil {
+			agent.MyLog.Fatal("Invalid config")
+		}
+		err = json.Unmarshal(f, &Config)
+		if err != nil {
+			agent.MyLog.Fatal("Config has bad json")
+		}
+	}
+	if addressFlag == "" {
+		addressFlag = Config.Address
+	}
+	if pollIntervalStrFlag == "" {
+		pollIntervalStrFlag = Config.PollInterval
+	}
+	if reportIntervalStrFlag == "" {
+		reportIntervalStrFlag = Config.ReportInterval
+	}
+	if secretKeyFlag == "" {
+		secretKeyFlag = Config.SecretKey
+	}
+	if rateLimitFlag == "" {
+		rateLimitFlag = Config.RateLimit
+	}
+	if cryptoKeyFlag == "" {
+		cryptoKeyFlag = Config.CryptoKey
+	}
 
 	// Initialize logging if the "logging" flag is set.
 	if logging {
@@ -82,9 +131,9 @@ func main() {
 		}
 	} else {
 		if cryptoKeyDir != "" {
-			address = "https://" + addressFlag
+			address = "https://" + address
 		} else {
-			address = "http://" + addressFlag
+			address = "http://" + address
 		}
 	}
 

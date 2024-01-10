@@ -8,6 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"encoding/json"
+
+	"github.com/luckyseadog/go-dev/internal/metrics"
 )
 
 type EnvVariables struct {
@@ -31,6 +34,8 @@ func SetUp() (*EnvVariables, error) {
 	var dataSourceNameFlag string
 	var logging bool
 	var cryptoKeyFlag string
+	var configFlag string
+	var cFlag string
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
@@ -40,7 +45,55 @@ func SetUp() (*EnvVariables, error) {
 	flag.StringVar(&dataSourceNameFlag, "d", "", "for accessing the underlying datastore")
 	flag.BoolVar(&logging, "log", false, "whether to save log to file")
 	flag.StringVar(&cryptoKeyFlag, "crypto-key", "", "whether to use asymmetric encoding")
+	flag.StringVar(&configFlag, "config", "", "path to config")
+	flag.StringVar(&cFlag, "c", "", "path to config")
 	flag.Parse()
+
+	var configPath string
+	configStr := os.Getenv("CONFIG")
+	if configStr == "" {
+		if configFlag != "" {
+			configPath = configFlag
+		} else {
+			configPath = cFlag
+		}
+	} else  {
+		configPath = configStr
+	}
+
+
+	var Config metrics.ConfigServer
+	if configPath != "" {
+		f, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, errors.New("invalid config")
+		}
+		err = json.Unmarshal(f, &Config)
+		if err != nil {
+			return nil, errors.New("config has bad json")
+		}
+	}
+	if addressFlag == "" {
+		addressFlag = Config.Address
+	}
+	if storeIntervalStrFlag == "" {
+		storeIntervalStrFlag = Config.StoreInterval
+	}
+	if storeFileFlag == "" {
+		storeFileFlag = Config.StoreFile
+	}
+	if restoreStrFlag == "" {
+		restoreStrFlag = Config.Restore
+	}
+	if secretKeyFlag == "" {
+		secretKeyFlag = Config.SecretKey
+	}
+	if dataSourceNameFlag == "" {
+		dataSourceNameFlag = Config.DataSourseName
+	}
+	if cryptoKeyFlag == "" {
+		cryptoKeyFlag = Config.CryptoKey
+	}
 
 	address := os.Getenv("ADDRESS")
 	if address == "" {
