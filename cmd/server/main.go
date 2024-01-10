@@ -3,15 +3,15 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"net/http/pprof"
 	"os"
-	"crypto/tls"
 	"path"
-	"crypto/x509"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

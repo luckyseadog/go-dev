@@ -3,15 +3,15 @@
 package agent
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"runtime"
 	"sync"
 	"time"
-	"crypto/tls"
-	"path"
-	"crypto/x509"
-	"os"
 
 	"github.com/shirou/gopsutil/v3/mem"
 
@@ -47,7 +47,7 @@ type Metrics struct {
 
 // Agent struct represents the monitoring agent responsible for collecting and reporting metrics.
 type Agent struct {
-	client  *http.Client      // HTTP client responsible for sending metric updates.
+	client  *http.Client     // HTTP client responsible for sending metric updates.
 	metrics Metrics          // Metrics collected by the agent.
 	mu      sync.RWMutex     // Mutex for safe concurrent access to metrics.
 	cancel  chan struct{}    // Channel for signaling agent cancellation.

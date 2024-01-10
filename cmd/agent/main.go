@@ -3,13 +3,13 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"time"
-	"encoding/json"
 
 	"github.com/luckyseadog/go-dev/internal/agent"
 	"github.com/luckyseadog/go-dev/internal/metrics"
@@ -61,10 +61,9 @@ func main() {
 		} else {
 			configPath = cFlag
 		}
-	} else  {
+	} else {
 		configPath = configStr
 	}
-
 
 	var Config metrics.ConfigAgent
 	if configPath != "" {

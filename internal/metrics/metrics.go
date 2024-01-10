@@ -94,20 +94,20 @@ type FileData struct {
 }
 
 type ConfigAgent struct {
-	Address string `json:"address,omitempty"`
-	PollInterval string `json:"poll_interval,omitempty"`
+	Address        string `json:"address,omitempty"`
+	PollInterval   string `json:"poll_interval,omitempty"`
 	ReportInterval string `json:"report_interval,omitempty"`
-	SecretKey string `json:"secret_key,omitempty"`
-	RateLimit string `json:"rate_limit,omitempty"`
-	CryptoKey string `json:"crypto_key,omitempty"`
+	SecretKey      string `json:"secret_key,omitempty"`
+	RateLimit      string `json:"rate_limit,omitempty"`
+	CryptoKey      string `json:"crypto_key,omitempty"`
 }
 
 type ConfigServer struct {
-	Address string `json:"address,omitempty"`
-	StoreInterval string `json:"store_interval,omitempty"`
-	StoreFile string `json:"store_file,omitempty"`
-	Restore string `json:"restore,omitempty"`
-	SecretKey string `json:"secret_key,omitempty"`
+	Address        string `json:"address,omitempty"`
+	StoreInterval  string `json:"store_interval,omitempty"`
+	StoreFile      string `json:"store_file,omitempty"`
+	Restore        string `json:"restore,omitempty"`
+	SecretKey      string `json:"secret_key,omitempty"`
 	DataSourseName string `json:"database_dsn,omitempty"`
-	CryptoKey string `json:"crypto_key,omitempty"`
+	CryptoKey      string `json:"crypto_key,omitempty"`
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"os"
@@ -8,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"encoding/json"
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
 )
@@ -22,7 +22,7 @@ type EnvVariables struct {
 	SecretKey      []byte
 	DataSourceName string
 	Logging        bool
-	CryptoKeyDir 	string
+	CryptoKeyDir   string
 }
 
 func SetUp() (*EnvVariables, error) {
@@ -57,10 +57,9 @@ func SetUp() (*EnvVariables, error) {
 		} else {
 			configPath = cFlag
 		}
-	} else  {
+	} else {
 		configPath = configStr
 	}
-
 
 	var Config metrics.ConfigServer
 	if configPath != "" {
@@ -151,7 +150,7 @@ func SetUp() (*EnvVariables, error) {
 	}
 
 	cryptoKeyStr := os.Getenv("CRYPTO_KEY")
-	if cryptoKeyStr == ""{
+	if cryptoKeyStr == "" {
 		cryptoKeyStr = cryptoKeyFlag
 	}
 
@@ -163,7 +162,7 @@ func SetUp() (*EnvVariables, error) {
 		SecretKey:      []byte(secretKeyStr),
 		DataSourceName: dataSourceNameStr,
 		Logging:        logging,
-		CryptoKeyDir: 		cryptoKeyStr,
+		CryptoKeyDir:   cryptoKeyStr,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {

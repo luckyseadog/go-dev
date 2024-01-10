@@ -9,11 +9,11 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"runtime"
-	"time"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"

@@ -1,14 +1,14 @@
 package server
 
 import (
+	"context"
+	"crypto/tls"
+	"fmt"
 	"log"
 	"net/http"
-	"crypto/tls"
 	"os"
 	"os/signal"
 	"syscall"
-	"fmt"
-	"context"
 	"time"
 )
 
