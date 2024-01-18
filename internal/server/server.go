@@ -36,7 +36,7 @@ func (s *Server) Run() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := s.Shutdown(ctx); err != nil {
-			MyLog.Fatal(err)
+			MyLog.Println(err)
 		}
 
 	case err := <-serveChan:
@@ -62,7 +62,7 @@ func (s *Server) RunTLS() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := s.Shutdown(ctx); err != nil {
-			MyLog.Fatal(err)
+			MyLog.Println(err)
 		}
 
 	case err := <-serveChan:

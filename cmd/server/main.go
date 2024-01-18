@@ -203,11 +203,11 @@ func main() {
 		}
 
 		srv = server.NewServerTLS(envVariables.Address, r, tlsConfig)
-		defer srv.Close()
+		// defer srv.Close()
 		srv.RunTLS()
 	} else {
 		srv = server.NewServer(envVariables.Address, r)
-		defer srv.Close()
+		// defer srv.Close()
 		srv.Run()
 	}
 }
