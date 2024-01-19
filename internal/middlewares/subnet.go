@@ -21,7 +21,8 @@ func SubnetMiddleware(trustedSubnet string) func(next http.Handler) http.Handler
 
 				IP := r.Header.Get("X-Real-IP")
 				if !ipNet.Contains(net.ParseIP(IP)) {
-					log.Println("HERE", IP, ipNet.Mask.String())
+					log.Println("HERE", IP)
+					log.Println("HERE", ipNet)
 					http.Error(w, "Invalid IP", http.StatusForbidden)
 					return
 				}
