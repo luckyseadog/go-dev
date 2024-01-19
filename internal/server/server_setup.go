@@ -49,7 +49,7 @@ func SetUp() (*EnvVariables, error) {
 	flag.StringVar(&cryptoKeyFlag, "crypto-key", "", "whether to use asymmetric encoding")
 	flag.StringVar(&configFlag, "config", "", "path to config")
 	flag.StringVar(&cFlag, "c", "", "path to config")
-	flag.StringVar(&trustedSubnetFlag, "t", "127.0.0.1/24", "mask of subnet which is trusted")
+	flag.StringVar(&trustedSubnetFlag, "t", "", "mask of subnet which is trusted")
 	flag.Parse()
 
 	var configPath string
@@ -95,6 +95,10 @@ func SetUp() (*EnvVariables, error) {
 	}
 	if cryptoKeyFlag == "" {
 		cryptoKeyFlag = Config.CryptoKey
+	}
+
+	if trustedSubnetFlag == "" {
+		trustedSubnetFlag = Config.TrustedSubnet
 	}
 
 	address := os.Getenv("ADDRESS")
