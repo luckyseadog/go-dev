@@ -23,6 +23,7 @@ type EnvVariables struct {
 	DataSourceName string
 	Logging        bool
 	CryptoKeyDir   string
+	TrustedSubnet  string
 }
 
 func SetUp() (*EnvVariables, error) {
@@ -36,6 +37,7 @@ func SetUp() (*EnvVariables, error) {
 	var cryptoKeyFlag string
 	var configFlag string
 	var cFlag string
+	var trustedSubnetFlag string
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
@@ -47,6 +49,7 @@ func SetUp() (*EnvVariables, error) {
 	flag.StringVar(&cryptoKeyFlag, "crypto-key", "", "whether to use asymmetric encoding")
 	flag.StringVar(&configFlag, "config", "", "path to config")
 	flag.StringVar(&cFlag, "c", "", "path to config")
+	flag.StringVar(&trustedSubnetFlag, "t", "127.0.0.1/24", "mask of subnet which is trusted")
 	flag.Parse()
 
 	var configPath string
@@ -154,6 +157,11 @@ func SetUp() (*EnvVariables, error) {
 		cryptoKeyStr = cryptoKeyFlag
 	}
 
+	trustedSubnetStr := os.Getenv("TRUSTED_SUBNET")
+	if trustedSubnetStr == "" {
+		trustedSubnetStr = trustedSubnetFlag
+	}
+
 	envVariables := &EnvVariables{Address: address,
 		StoreInterval:  storeInterval,
 		StoreFile:      storeFile,
@@ -163,6 +171,7 @@ func SetUp() (*EnvVariables, error) {
 		DataSourceName: dataSourceNameStr,
 		Logging:        logging,
 		CryptoKeyDir:   cryptoKeyStr,
+		TrustedSubnet:  trustedSubnetStr,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {

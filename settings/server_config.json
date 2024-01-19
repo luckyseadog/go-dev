@@ -5,5 +5,6 @@
     "restore": "true", 
     "secret_key": "",
     "database_dsn": "", 
-    "crypto_key": ""
+    "crypto_key": "",
+    "trusted_subnet": "127.0.0.1/24"
 }

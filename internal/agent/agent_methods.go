@@ -174,6 +174,7 @@ func (a *Agent) PostStats(wg *sync.WaitGroup) {
 				MyLog.Println(err)
 				continue
 			}
+			req.Header.Set("X-Real-IP", "127.0.0.1") // localhost for now
 			req.Header.Set("Content-Type", a.ruler.contentType)
 			req.Header.Add("Accept", "application/json")
 			response, err := a.client.Do(req)
@@ -200,7 +201,6 @@ func (a *Agent) Run() {
 	wg.Add(1)
 	wg.Add(1)
 	wg.Add(1)
-
 
 	go a.GetStats(&wg)
 	go a.GetExtendedStats(&wg)

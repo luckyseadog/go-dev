@@ -118,6 +118,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.GzipMiddleware)
+	r.Use(middlewares.SubnetMiddleware(envVariables.TrustedSubnet))
 
 	// Define routes and handlers for various endpoints.
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
