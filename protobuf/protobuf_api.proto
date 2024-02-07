@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package protobuf_api;
+
+option go_package = "protobuf/proto";
+
+message Metric {
+  string id = 1;
+  string m_type = 2;
+  int64 delta = 3;
+  double value = 4;
+  string hash = 5;
+}
+
+message AddMetricsRequest {
+  repeated Metric metrics = 1;
+  bytes key = 2;
+}
+
+message AddMetricsResponse {
+  repeated Metric metrics = 1;
+}
+
+service MetricsCollect {
+    rpc AddMetrics(AddMetricsRequest) returns (AddMetricsResponse);
+}
+
+

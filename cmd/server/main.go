@@ -21,6 +21,8 @@ import (
 	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
+
+	pb "github.com/luckyseadog/go-dev/protobuf"
 )
 
 var (
@@ -109,106 +111,150 @@ func main() {
 		}
 	}
 
-	// Create a new Chi router instance.
-	r := chi.NewRouter()
-
-	// Attach middleware to the router.
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middlewares.GzipMiddleware)
-	r.Use(middlewares.SubnetMiddleware(envVariables.TrustedSubnet))
-
-	// Define routes and handlers for various endpoints.
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		handlers.HandlerDefault(w, r, s)
-	})
-	r.Get("/value/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
-		handlers.HandlerGet(w, r, s)
-	})
-	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		handlers.HandlerPing(w, r, s)
-	})
-	r.Route("/value", func(r chi.Router) {
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerValueJSON(w, r, s, envVariables.SecretKey)
-		})
-		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerValueJSON(w, r, s, envVariables.SecretKey)
-		})
-	})
-
-	r.Post("/update/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
-		handlers.HandlerUpdate(w, r, s)
-	})
-	r.Route("/update", func(r chi.Router) {
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-		})
-		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
-		})
-	})
-	r.Route("/updates", func(r chi.Router) {
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerUpdatesJSON(w, r, s, envVariables.SecretKey)
-		})
-		r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
-			handlers.HandlerUpdatesJSON(w, r, s, envVariables.SecretKey)
-		})
-	})
-	r.Route("/debug/pprof", func(r chi.Router) {
-		r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
-			pprof.Index(w, r)
-		})
-		r.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
-			pprof.Profile(w, r)
-		})
-		r.HandleFunc("/cmdline", func(w http.ResponseWriter, r *http.Request) {
-			pprof.Cmdline(w, r)
-		})
-		r.HandleFunc("/symbol", func(w http.ResponseWriter, r *http.Request) {
-			pprof.Symbol(w, r)
-		})
-		r.HandleFunc("/trace", func(w http.ResponseWriter, r *http.Request) {
-			pprof.Trace(w, r)
-		})
-	})
-
-	fmt.Println(envVariables.Address)
-
 	// Create a new server instance with the provided address and router.
-	var srv *server.Server
-	if envVariables.CryptoKeyDir != "" {
-		serverTLSCert, err := tls.LoadX509KeyPair(
-			path.Join(envVariables.CryptoKeyDir, "server/certServer.pem"),
-			path.Join(envVariables.CryptoKeyDir, "server/privateKeyServer.pem"),
-		)
+	var srv server.ServerInterface
+	if envVariables.GRPC {
+		fmt.Println("BEGIN with ~186 line and implement gRPC over HTTP and HTTPS; storage inside gRPC")
+		// srv := server.NewServerGRPC(envVariables.Address)
+		// pb.RegisterMetricsCollectServer(srv, &server.MetricsCollectServer{Storage: s})
 
-		if err != nil {
-			server.MyLog.Fatalf("Error loading certificate and key file: %v", err)
+		// if envVariables.CryptoKeyDir != "" {
+		// grpcServer := grpc.NewServer(
+		// 	grpc.Creds(credentials.NewTLS(tlsConfig)),
+		// )
+		if envVariables.CryptoKeyDir != "" {
+			serverTLSCert, err := tls.LoadX509KeyPair(
+				path.Join(envVariables.CryptoKeyDir, "server/certServer.pem"),
+				path.Join(envVariables.CryptoKeyDir, "server/privateKeyServer.pem"),
+			)
+
+			if err != nil {
+				server.MyLog.Fatalf("Error loading certificate and key file: %v", err)
+			}
+
+			// Configure the server to trust TLS client cert issued by your CA.
+			certPool := x509.NewCertPool()
+			if caCertPEM, err := os.ReadFile(path.Join(envVariables.CryptoKeyDir, "root/certRoot.pem")); err != nil {
+				server.MyLog.Fatal(err)
+			} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
+				server.MyLog.Fatal("invalid cert in CA PEM")
+			}
+			tlsConfig := &tls.Config{
+				ClientAuth:   tls.RequireAndVerifyClientCert,
+				ClientCAs:    certPool,
+				Certificates: []tls.Certificate{serverTLSCert},
+			}
+
+			srv := server.NewServerGRPC(envVariables.Address, tlsConfig)
+			pb.RegisterMetricsCollectServer(srv, &server.MetricsCollectServer{Storage: s})
+			// defer srv.Close()
+			srv.Run()
+		} else {
+			srv := server.NewServerGRPC(envVariables.Address, nil)
+			pb.RegisterMetricsCollectServer(srv, &server.MetricsCollectServer{Storage: s})
+			// defer srv.Close()
+			srv.Run()
 		}
 
-		// Configure the server to trust TLS client cert issued by your CA.
-		certPool := x509.NewCertPool()
-		if caCertPEM, err := os.ReadFile(path.Join(envVariables.CryptoKeyDir, "root/certRoot.pem")); err != nil {
-			server.MyLog.Fatal(err)
-		} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
-			server.MyLog.Fatal("invalid cert in CA PEM")
-		}
-		tlsConfig := &tls.Config{
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			ClientCAs:    certPool,
-			Certificates: []tls.Certificate{serverTLSCert},
-		}
-
-		srv = server.NewServerTLS(envVariables.Address, r, tlsConfig)
-		// defer srv.Close()
-		srv.RunTLS()
 	} else {
-		srv = server.NewServer(envVariables.Address, r)
-		// defer srv.Close()
-		srv.Run()
+		// Create a new Chi router instance.
+		r := chi.NewRouter()
+
+		// Attach middleware to the router.
+		r.Use(middleware.RequestID)
+		r.Use(middleware.RealIP)
+		r.Use(middleware.Logger)
+		r.Use(middleware.Recoverer)
+		r.Use(middlewares.GzipMiddleware)
+		r.Use(middlewares.SubnetMiddleware(envVariables.TrustedSubnet))
+
+		// Define routes and handlers for various endpoints.
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			handlers.HandlerDefault(w, r, s)
+		})
+		r.Get("/value/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
+			handlers.HandlerGet(w, r, s)
+		})
+		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+			handlers.HandlerPing(w, r, s)
+		})
+		r.Route("/value", func(r chi.Router) {
+			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+				handlers.HandlerValueJSON(w, r, s, envVariables.SecretKey)
+			})
+			r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+				handlers.HandlerValueJSON(w, r, s, envVariables.SecretKey)
+			})
+		})
+
+		r.Post("/update/{^+}/*", func(w http.ResponseWriter, r *http.Request) {
+			handlers.HandlerUpdate(w, r, s)
+		})
+		r.Route("/update", func(r chi.Router) {
+			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+				handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
+			})
+			r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+				handlers.HandlerUpdateJSON(w, r, s, envVariables.SecretKey)
+			})
+		})
+		r.Route("/updates", func(r chi.Router) {
+			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+				handlers.HandlerUpdatesJSON(w, r, s, envVariables.SecretKey)
+			})
+			r.Post("/{_}", func(w http.ResponseWriter, r *http.Request) {
+				handlers.HandlerUpdatesJSON(w, r, s, envVariables.SecretKey)
+			})
+		})
+		r.Route("/debug/pprof", func(r chi.Router) {
+			r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+				pprof.Index(w, r)
+			})
+			r.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
+				pprof.Profile(w, r)
+			})
+			r.HandleFunc("/cmdline", func(w http.ResponseWriter, r *http.Request) {
+				pprof.Cmdline(w, r)
+			})
+			r.HandleFunc("/symbol", func(w http.ResponseWriter, r *http.Request) {
+				pprof.Symbol(w, r)
+			})
+			r.HandleFunc("/trace", func(w http.ResponseWriter, r *http.Request) {
+				pprof.Trace(w, r)
+			})
+		})
+
+		fmt.Println(envVariables.Address)
+		if envVariables.CryptoKeyDir != "" {
+			serverTLSCert, err := tls.LoadX509KeyPair(
+				path.Join(envVariables.CryptoKeyDir, "server/certServer.pem"),
+				path.Join(envVariables.CryptoKeyDir, "server/privateKeyServer.pem"),
+			)
+
+			if err != nil {
+				server.MyLog.Fatalf("Error loading certificate and key file: %v", err)
+			}
+
+			// Configure the server to trust TLS client cert issued by your CA.
+			certPool := x509.NewCertPool()
+			if caCertPEM, err := os.ReadFile(path.Join(envVariables.CryptoKeyDir, "root/certRoot.pem")); err != nil {
+				server.MyLog.Fatal(err)
+			} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
+				server.MyLog.Fatal("invalid cert in CA PEM")
+			}
+			tlsConfig := &tls.Config{
+				ClientAuth:   tls.RequireAndVerifyClientCert,
+				ClientCAs:    certPool,
+				Certificates: []tls.Certificate{serverTLSCert},
+			}
+
+			srv = server.NewServerTLS(envVariables.Address, r, tlsConfig)
+			// defer srv.Close()
+			srv.RunTLS()
+		} else {
+			srv = server.NewServer(envVariables.Address, r)
+			// defer srv.Close()
+			srv.Run()
+		}
 	}
 }

@@ -24,6 +24,7 @@ type EnvVariables struct {
 	Logging        bool
 	CryptoKeyDir   string
 	TrustedSubnet  string
+	GRPC bool
 }
 
 func SetUp() (*EnvVariables, error) {
@@ -38,6 +39,7 @@ func SetUp() (*EnvVariables, error) {
 	var configFlag string
 	var cFlag string
 	var trustedSubnetFlag string
+	var gRPCFlag string
 
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
 	flag.StringVar(&storeIntervalStrFlag, "i", "300", "time to make new write in disk")
@@ -50,6 +52,7 @@ func SetUp() (*EnvVariables, error) {
 	flag.StringVar(&configFlag, "config", "", "path to config")
 	flag.StringVar(&cFlag, "c", "", "path to config")
 	flag.StringVar(&trustedSubnetFlag, "t", "", "mask of subnet which is trusted")
+	flag.StringVar(&gRPCFlag, "grpc", "false", "whether to use gRPC")
 	flag.Parse()
 
 	var configPath string
@@ -99,6 +102,10 @@ func SetUp() (*EnvVariables, error) {
 
 	if trustedSubnetFlag == "" {
 		trustedSubnetFlag = Config.TrustedSubnet
+	}
+
+	if gRPCFlag == "" {
+		gRPCFlag = Config.GRPC
 	}
 
 	address := os.Getenv("ADDRESS")
@@ -166,6 +173,23 @@ func SetUp() (*EnvVariables, error) {
 		trustedSubnetStr = trustedSubnetFlag
 	}
 
+	var gRPC bool
+	gRPCStr := os.Getenv("GRPC")
+	if gRPCStr == "" {
+		gRPCStr = gRPCFlag
+	}
+	if gRPCStr == "" {
+		gRPC = false
+	} else {
+		if strings.ToLower(gRPCStr) == "true" {
+			gRPC = true
+		} else if strings.ToLower(gRPCStr) == "false" {
+			gRPC = false
+		} else {
+			return nil, errors.New("invalid gRPC flag")
+		}
+	}
+
 	envVariables := &EnvVariables{Address: address,
 		StoreInterval:  storeInterval,
 		StoreFile:      storeFile,
@@ -176,6 +200,7 @@ func SetUp() (*EnvVariables, error) {
 		Logging:        logging,
 		CryptoKeyDir:   cryptoKeyStr,
 		TrustedSubnet:  trustedSubnetStr,
+		GRPC: gRPC,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {

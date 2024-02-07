@@ -1,0 +1,158 @@
+package server
+
+import (
+	// "crypto/tls"
+	"fmt"
+	// "log"
+	"encoding/hex"
+	"context"
+	"crypto/tls"
+	"os"
+	"os/signal"
+	"syscall"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
+	"net"
+	"crypto/hmac"
+	"github.com/luckyseadog/go-dev/internal/storage"
+
+	"github.com/luckyseadog/go-dev/internal/security"
+	"github.com/luckyseadog/go-dev/internal/metrics"
+
+
+	pb "github.com/luckyseadog/go-dev/protobuf"
+)
+
+type MetricsCollectServer struct {
+	pb.UnimplementedMetricsCollectServer
+	Storage storage.Storage 
+}
+
+func (mcs *MetricsCollectServer) AddMetricsRequest(ctx context.Context, in *pb.AddMetricsRequest) (*pb.AddMetricsResponse, error) {
+	metricsCurrent := in.Metrics
+
+	for _, metric := range metricsCurrent {
+		switch metric.MType {
+		case "gauge":
+			if metric.Value == -1 || metric.Delta != -1 {
+				return nil, status.Error(codes.Unknown, "Error")
+			}
+
+			if len(in.Key) > 0 {
+				computedHash := security.Hash(fmt.Sprintf("%s:gauge:%f", metric.Id, metric.Value), in.Key)
+				decodedComputedHash, err := hex.DecodeString(computedHash)
+				if err != nil {
+					return nil, status.Error(codes.Unknown, "Error")
+				}
+				decodedMetricHash, err := hex.DecodeString(metric.Hash)
+				if err != nil {
+					return nil, status.Error(codes.Unknown, "Error")
+				}
+				if !hmac.Equal(decodedComputedHash, decodedMetricHash) {
+					return nil, status.Error(codes.Unknown, "Error")
+				}
+			}
+			err := mcs.Storage.StoreContext(ctx, metrics.Metric(metric.Id), metrics.Gauge(metric.Value))
+			if err != nil {
+				return nil, status.Error(codes.Unknown, "Error")
+			}
+
+		case "counter":
+			if metric.Delta == -1 || metric.Value != -1 {
+				return nil, status.Error(codes.Unknown, "Error")
+			}
+
+			if len(in.Key) > 0 {
+				computedHash := security.Hash(fmt.Sprintf("%s:counter:%d", metric.Id, metric.Delta), in.Key)
+				decodedComputedHash, err := hex.DecodeString(computedHash)
+				if err != nil {
+					return nil, status.Error(codes.Unknown, "Error")
+				}
+				decodedMetricHash, err := hex.DecodeString(metric.Hash)
+				if err != nil {
+					return nil, status.Error(codes.Unknown, "Error")
+				}
+				if !hmac.Equal(decodedComputedHash, decodedMetricHash) {
+					return nil, status.Error(codes.Unknown, "Error")
+				}
+			}
+			err := mcs.Storage.StoreContext(ctx, metrics.Metric(metric.Id), metrics.Counter(metric.Delta))
+			if err != nil {
+				return nil, status.Error(codes.Unknown, "Error")
+			}
+
+		default:
+			return nil, status.Error(codes.Unknown, "Error")
+		}
+	}
+
+	metricsAnswer := make([]metrics.Metrics, 0)
+
+	for _, metric := range metricsCurrent {
+		res := mcs.Storage.LoadContext(ctx, metric.MType, metrics.Metric(metric.Id))
+		if res.Err != nil {
+			return nil, status.Error(codes.Unknown, "Error")
+		}
+		switch metric.MType {
+		case "gauge":
+			valueFloat64 := float64(res.Value.(metrics.Gauge))
+			hashMetric := security.Hash(fmt.Sprintf("%s:gauge:%f", metric.Id, valueFloat64), in.Key)
+			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.Id, MType: metric.MType, Value: &valueFloat64, Hash: hashMetric})
+		case "counter":
+			valueInt64 := int64(res.Value.(metrics.Counter))
+			hashMetric := security.Hash(fmt.Sprintf("%s:counter:%d", metric.Id, valueInt64), in.Key)
+			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.Id, MType: metric.MType, Delta: &valueInt64, Hash: hashMetric})
+		default:
+			return nil, status.Error(codes.Unknown, "Error")
+		}
+	}
+
+	var response pb.AddMetricsResponse
+
+	for _, metric := range metricsAnswer {
+		response.Metrics = append(response.Metrics, &pb.Metric{
+			Id: metric.ID,
+			MType: metric.MType,
+			Delta: *metric.Delta,
+			Value: *metric.Value,
+			Hash: metric.Hash,
+		})
+	}
+
+	return &response, nil
+}
+ 
+
+type ServerGRPC struct {
+	*grpc.Server
+	address string
+}
+
+func NewServerGRPC(address string, tlsConfig *tls.Config) *ServerGRPC {
+	return &ServerGRPC{
+		grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConfig))), 
+		address,
+	}
+}
+
+func (s *ServerGRPC) Run() {
+	listen, _ := net.Listen("tcp", s.address)
+	pb.RegisterMetricsCollectServer(s, &MetricsCollectServer{})
+	serveChan := make(chan error, 1)
+	go func() {
+		serveChan <- s.Serve(listen)
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	select {
+	case <-stop:
+		fmt.Println("shutting down gracefully")
+		s.GracefulStop()
+
+	case err := <-serveChan:
+		MyLog.Fatal(err)
+	}
+}

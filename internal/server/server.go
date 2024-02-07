@@ -14,6 +14,11 @@ import (
 
 var MyLog = log.Default()
 
+type ServerInterface interface {
+	Run()
+	RunTLS()
+}
+
 type Server struct {
 	http.Server
 }

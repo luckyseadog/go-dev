@@ -111,4 +111,5 @@ type ConfigServer struct {
 	DataSourseName string `json:"database_dsn,omitempty"`
 	CryptoKey      string `json:"crypto_key,omitempty"`
 	TrustedSubnet  string `json:"trusted_subnet,omitempty"`
+	GRPC  string `json:"grpc,omitempty"`
 }
