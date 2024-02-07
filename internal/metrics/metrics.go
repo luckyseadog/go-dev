@@ -100,6 +100,7 @@ type ConfigAgent struct {
 	SecretKey      string `json:"secret_key,omitempty"`
 	RateLimit      string `json:"rate_limit,omitempty"`
 	CryptoKey      string `json:"crypto_key,omitempty"`
+	GRPC  string `json:"grpc,omitempty"`
 }
 
 type ConfigServer struct {

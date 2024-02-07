@@ -30,61 +30,63 @@ type MetricsCollectServer struct {
 	Storage storage.Storage 
 }
 
-func (mcs *MetricsCollectServer) AddMetricsRequest(ctx context.Context, in *pb.AddMetricsRequest) (*pb.AddMetricsResponse, error) {
+func (mcs *MetricsCollectServer) AddMetrics(ctx context.Context, in *pb.AddMetricsRequest) (*pb.AddMetricsResponse, error) {
 	metricsCurrent := in.Metrics
+
+	
 
 	for _, metric := range metricsCurrent {
 		switch metric.MType {
 		case "gauge":
-			if metric.Value == -1 || metric.Delta != -1 {
-				return nil, status.Error(codes.Unknown, "Error")
-			}
+			// if metric.Value == -1 || metric.Delta != -1 {
+			// 	return nil, status.Error(codes.Unknown, "1Error")
+			// }
 
 			if len(in.Key) > 0 {
 				computedHash := security.Hash(fmt.Sprintf("%s:gauge:%f", metric.Id, metric.Value), in.Key)
 				decodedComputedHash, err := hex.DecodeString(computedHash)
 				if err != nil {
-					return nil, status.Error(codes.Unknown, "Error")
+					return nil, status.Error(codes.Unknown, "2Error")
 				}
 				decodedMetricHash, err := hex.DecodeString(metric.Hash)
 				if err != nil {
-					return nil, status.Error(codes.Unknown, "Error")
+					return nil, status.Error(codes.Unknown, "3Error")
 				}
 				if !hmac.Equal(decodedComputedHash, decodedMetricHash) {
-					return nil, status.Error(codes.Unknown, "Error")
+					return nil, status.Error(codes.Unknown, "4Error")
 				}
 			}
 			err := mcs.Storage.StoreContext(ctx, metrics.Metric(metric.Id), metrics.Gauge(metric.Value))
 			if err != nil {
-				return nil, status.Error(codes.Unknown, "Error")
+				return nil, status.Error(codes.Unknown, "5Error")
 			}
 
 		case "counter":
-			if metric.Delta == -1 || metric.Value != -1 {
-				return nil, status.Error(codes.Unknown, "Error")
-			}
+			// if metric.Delta == -1 || metric.Value != -1 {
+			// 	return nil, status.Error(codes.Unknown, "6Error")
+			// }
 
 			if len(in.Key) > 0 {
 				computedHash := security.Hash(fmt.Sprintf("%s:counter:%d", metric.Id, metric.Delta), in.Key)
 				decodedComputedHash, err := hex.DecodeString(computedHash)
 				if err != nil {
-					return nil, status.Error(codes.Unknown, "Error")
+					return nil, status.Error(codes.Unknown, "7Error")
 				}
 				decodedMetricHash, err := hex.DecodeString(metric.Hash)
 				if err != nil {
-					return nil, status.Error(codes.Unknown, "Error")
+					return nil, status.Error(codes.Unknown, "8Error")
 				}
 				if !hmac.Equal(decodedComputedHash, decodedMetricHash) {
-					return nil, status.Error(codes.Unknown, "Error")
+					return nil, status.Error(codes.Unknown, "9Error")
 				}
 			}
 			err := mcs.Storage.StoreContext(ctx, metrics.Metric(metric.Id), metrics.Counter(metric.Delta))
 			if err != nil {
-				return nil, status.Error(codes.Unknown, "Error")
+				return nil, status.Error(codes.Unknown, "10Error")
 			}
 
 		default:
-			return nil, status.Error(codes.Unknown, "Error")
+			return nil, status.Error(codes.Unknown, "11Error")
 		}
 	}
 
@@ -93,7 +95,7 @@ func (mcs *MetricsCollectServer) AddMetricsRequest(ctx context.Context, in *pb.A
 	for _, metric := range metricsCurrent {
 		res := mcs.Storage.LoadContext(ctx, metric.MType, metrics.Metric(metric.Id))
 		if res.Err != nil {
-			return nil, status.Error(codes.Unknown, "Error")
+			return nil, status.Error(codes.Unknown, "12Error")
 		}
 		switch metric.MType {
 		case "gauge":
@@ -105,20 +107,30 @@ func (mcs *MetricsCollectServer) AddMetricsRequest(ctx context.Context, in *pb.A
 			hashMetric := security.Hash(fmt.Sprintf("%s:counter:%d", metric.Id, valueInt64), in.Key)
 			metricsAnswer = append(metricsAnswer, metrics.Metrics{ID: metric.Id, MType: metric.MType, Delta: &valueInt64, Hash: hashMetric})
 		default:
-			return nil, status.Error(codes.Unknown, "Error")
+			return nil, status.Error(codes.Unknown, "13Error")
 		}
 	}
 
 	var response pb.AddMetricsResponse
 
 	for _, metric := range metricsAnswer {
-		response.Metrics = append(response.Metrics, &pb.Metric{
-			Id: metric.ID,
-			MType: metric.MType,
-			Delta: *metric.Delta,
-			Value: *metric.Value,
-			Hash: metric.Hash,
-		})
+		if metric.Delta == nil {
+			response.Metrics = append(response.Metrics, &pb.Metric{
+				Id: metric.ID,
+				MType: metric.MType,
+				Value: *metric.Value,
+				Hash: metric.Hash,
+			})
+		}
+	
+		if metric.Value == nil {
+			response.Metrics = append(response.Metrics, &pb.Metric{
+				Id: metric.ID,
+				MType: metric.MType,
+				Delta: *metric.Delta,
+				Hash: metric.Hash,
+			})
+		}
 	}
 
 	return &response, nil
@@ -138,8 +150,9 @@ func NewServerGRPC(address string, tlsConfig *tls.Config) *ServerGRPC {
 }
 
 func (s *ServerGRPC) Run() {
+	fmt.Println("Start server gRPC")
 	listen, _ := net.Listen("tcp", s.address)
-	pb.RegisterMetricsCollectServer(s, &MetricsCollectServer{})
+	// pb.RegisterMetricsCollectServer(s, &MetricsCollectServer{})
 	serveChan := make(chan error, 1)
 	go func() {
 		serveChan <- s.Serve(listen)
