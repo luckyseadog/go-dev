@@ -5,8 +5,8 @@ import (
 	"crypto/x509"
 	"os"
 	"path"
-	"time"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -16,11 +16,11 @@ import (
 )
 
 type AgentGRPC struct {
-	client pb.MetricsCollectClient
-	ruler InteractionRules
-	metrics Metrics  
-	mu      sync.RWMutex    
-	cancel  chan struct{}   
+	client  pb.MetricsCollectClient
+	ruler   InteractionRules
+	metrics Metrics
+	mu      sync.RWMutex
+	cancel  chan struct{}
 }
 
 func NewAgentGRPC(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int, cryptoKeyDir string) *AgentGRPC {

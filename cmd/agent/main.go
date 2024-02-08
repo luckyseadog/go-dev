@@ -9,8 +9,8 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/luckyseadog/go-dev/internal/agent"
 	"github.com/luckyseadog/go-dev/internal/metrics"
@@ -126,7 +126,6 @@ func main() {
 	// Retrieve configuration values from environment variables and command-line flags.
 	// If corresponding environment variables are set, they take precedence over command-line flags.
 
-
 	// Set the content type for the requests to the server.
 	contentType := "application/json"
 
@@ -215,7 +214,7 @@ func main() {
 		if address == "" {
 			address = addressFlag
 		}
-		
+
 		agt = agent.NewAgentGRPC(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
 		agt.Run()
 	} else {

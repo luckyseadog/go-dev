@@ -158,25 +158,25 @@ func (a *AgentGRPC) PostStats(wg *sync.WaitGroup) {
 			for _, metric := range metricsCurrent {
 				if metric.Delta == nil {
 					request.Metrics = append(request.Metrics, &pb.Metric{
-						Id: metric.ID,
+						Id:    metric.ID,
 						MType: metric.MType,
 						Value: *metric.Value,
-						Hash: metric.Hash,
+						Hash:  metric.Hash,
 					})
 				}
-			
+
 				if metric.Value == nil {
 					request.Metrics = append(request.Metrics, &pb.Metric{
-						Id: metric.ID,
+						Id:    metric.ID,
 						MType: metric.MType,
 						Delta: *metric.Delta,
-						Hash: metric.Hash,
+						Hash:  metric.Hash,
 					})
 				}
 			}
 
 			md := metadata.New(map[string]string{
-				"X-Real-IP":  "127.0.0.1",
+				"X-Real-IP": "127.0.0.1",
 			}) // should insert in config
 			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
@@ -188,7 +188,6 @@ func (a *AgentGRPC) PostStats(wg *sync.WaitGroup) {
 		}
 	}
 }
-
 
 func (a *AgentGRPC) Run() {
 	var wg sync.WaitGroup

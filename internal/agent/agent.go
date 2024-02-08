@@ -24,7 +24,6 @@ const UPDATE = "updates/"
 // MyLog is the logger used for agent logs. It is initialized with log.Default() by default.
 var MyLog = log.Default()
 
-
 type AgentInterface interface {
 	Run()
 	Stop()
@@ -32,7 +31,6 @@ type AgentInterface interface {
 	GetExtendedStats(wg *sync.WaitGroup)
 	GetStats(wg *sync.WaitGroup)
 }
-
 
 // InteractionRules holds configuration parameters for the agent's behavior.
 // It specifies the address of the server, content type for requests, poll and report intervals,

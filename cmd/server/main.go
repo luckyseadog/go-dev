@@ -115,7 +115,6 @@ func main() {
 	// Create a new server instance with the provided address and router.
 	var srv server.ServerInterface
 	if envVariables.GRPC {
-		fmt.Println("BEGIN with ~186 line and implement gRPC over HTTP and HTTPS; storage inside gRPC")
 		// srv := server.NewServerGRPC(envVariables.Address)
 		// pb.RegisterMetricsCollectServer(srv, &server.MetricsCollectServer{Storage: s})
 
@@ -146,12 +145,12 @@ func main() {
 				Certificates: []tls.Certificate{serverTLSCert},
 			}
 
-			srv := server.NewServerGRPC(envVariables.Address, tlsConfig)
+			srv := server.NewServerGRPC(envVariables.Address, tlsConfig, middlewares.GzipInterceptor, middlewares.SubnetInterceptor(envVariables.TrustedSubnet))
 			pb.RegisterMetricsCollectServer(srv, &server.MetricsCollectServer{Storage: s})
 			// defer srv.Close()
 			srv.Run()
 		} else {
-			srv := server.NewServerGRPC(envVariables.Address, nil)
+			srv := server.NewServerGRPC(envVariables.Address, nil, middlewares.GzipInterceptor, middlewares.SubnetInterceptor(envVariables.TrustedSubnet))
 			pb.RegisterMetricsCollectServer(srv, &server.MetricsCollectServer{Storage: s})
 			// defer srv.Close()
 			srv.Run()

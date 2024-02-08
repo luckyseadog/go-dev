@@ -1,39 +1,35 @@
 package server
 
 import (
-	// "crypto/tls"
 	"fmt"
-	// "log"
-	"encoding/hex"
 	"context"
+	"crypto/hmac"
 	"crypto/tls"
+	"encoding/hex"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/luckyseadog/go-dev/internal/storage"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
-	"net"
-	"crypto/hmac"
-	"github.com/luckyseadog/go-dev/internal/storage"
 
-	"github.com/luckyseadog/go-dev/internal/security"
 	"github.com/luckyseadog/go-dev/internal/metrics"
-
+	"github.com/luckyseadog/go-dev/internal/security"
 
 	pb "github.com/luckyseadog/go-dev/protobuf"
 )
 
 type MetricsCollectServer struct {
 	pb.UnimplementedMetricsCollectServer
-	Storage storage.Storage 
+	Storage storage.Storage
 }
 
 func (mcs *MetricsCollectServer) AddMetrics(ctx context.Context, in *pb.AddMetricsRequest) (*pb.AddMetricsResponse, error) {
 	metricsCurrent := in.Metrics
-
-	
 
 	for _, metric := range metricsCurrent {
 		switch metric.MType {
@@ -116,35 +112,39 @@ func (mcs *MetricsCollectServer) AddMetrics(ctx context.Context, in *pb.AddMetri
 	for _, metric := range metricsAnswer {
 		if metric.Delta == nil {
 			response.Metrics = append(response.Metrics, &pb.Metric{
-				Id: metric.ID,
+				Id:    metric.ID,
 				MType: metric.MType,
 				Value: *metric.Value,
-				Hash: metric.Hash,
+				Hash:  metric.Hash,
 			})
 		}
-	
+
 		if metric.Value == nil {
 			response.Metrics = append(response.Metrics, &pb.Metric{
-				Id: metric.ID,
+				Id:    metric.ID,
 				MType: metric.MType,
 				Delta: *metric.Delta,
-				Hash: metric.Hash,
+				Hash:  metric.Hash,
 			})
 		}
 	}
-
+	MyLog.Println("Success", status.Code(nil))
 	return &response, nil
 }
- 
 
 type ServerGRPC struct {
 	*grpc.Server
 	address string
 }
 
-func NewServerGRPC(address string, tlsConfig *tls.Config) *ServerGRPC {
+func NewServerGRPC(address string, tlsConfig *tls.Config, gzipInterceptor grpc.UnaryServerInterceptor, subnetInterceptor grpc.UnaryServerInterceptor) *ServerGRPC {
+	grpcServer := grpc.NewServer(
+		grpc.Creds(credentials.NewTLS(tlsConfig)),
+		grpc.ChainUnaryInterceptor(gzipInterceptor, subnetInterceptor),
+		// Add more options or interceptors as needed
+	)
 	return &ServerGRPC{
-		grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConfig))), 
+		grpcServer,
 		address,
 	}
 }

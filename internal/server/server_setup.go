@@ -24,7 +24,7 @@ type EnvVariables struct {
 	Logging        bool
 	CryptoKeyDir   string
 	TrustedSubnet  string
-	GRPC bool
+	GRPC           bool
 }
 
 func SetUp() (*EnvVariables, error) {
@@ -200,7 +200,7 @@ func SetUp() (*EnvVariables, error) {
 		Logging:        logging,
 		CryptoKeyDir:   cryptoKeyStr,
 		TrustedSubnet:  trustedSubnetStr,
-		GRPC: gRPC,
+		GRPC:           gRPC,
 	}
 
 	if _, err := os.Stat(envVariables.Dir); os.IsNotExist(err) {

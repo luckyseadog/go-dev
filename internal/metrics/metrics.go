@@ -100,7 +100,7 @@ type ConfigAgent struct {
 	SecretKey      string `json:"secret_key,omitempty"`
 	RateLimit      string `json:"rate_limit,omitempty"`
 	CryptoKey      string `json:"crypto_key,omitempty"`
-	GRPC  string `json:"grpc,omitempty"`
+	GRPC           string `json:"grpc,omitempty"`
 }
 
 type ConfigServer struct {
@@ -112,5 +112,5 @@ type ConfigServer struct {
 	DataSourseName string `json:"database_dsn,omitempty"`
 	CryptoKey      string `json:"crypto_key,omitempty"`
 	TrustedSubnet  string `json:"trusted_subnet,omitempty"`
-	GRPC  string `json:"grpc,omitempty"`
+	GRPC           string `json:"grpc,omitempty"`
 }
