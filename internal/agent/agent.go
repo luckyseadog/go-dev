@@ -3,8 +3,12 @@
 package agent
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"runtime"
 	"sync"
 	"time"
@@ -43,7 +47,7 @@ type Metrics struct {
 
 // Agent struct represents the monitoring agent responsible for collecting and reporting metrics.
 type Agent struct {
-	client  http.Client      // HTTP client responsible for sending metric updates.
+	client  *http.Client     // HTTP client responsible for sending metric updates.
 	metrics Metrics          // Metrics collected by the agent.
 	mu      sync.RWMutex     // Mutex for safe concurrent access to metrics.
 	cancel  chan struct{}    // Channel for signaling agent cancellation.
@@ -64,7 +68,7 @@ type Agent struct {
 //
 // Returns:
 //   - A pointer to a newly created and initialized Agent instance.
-func NewAgent(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int) *Agent {
+func NewAgent(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int, cryptoKeyDir string) *Agent {
 	rateLimitChan := make(chan struct{}, rateLimit)
 	for i := 0; i < rateLimit; i++ {
 		rateLimitChan <- struct{}{}
@@ -78,5 +82,36 @@ func NewAgent(address string, contentType string, pollInterval time.Duration, re
 		rateLimitChan:  rateLimitChan,
 	}
 	cancel := make(chan struct{})
-	return &Agent{client: http.Client{}, ruler: interactionRules, cancel: cancel}
+
+	var client *http.Client
+	if cryptoKeyDir != "" {
+		clientTLSCert, err := tls.LoadX509KeyPair(path.Join(cryptoKeyDir, "agent/certAgent.pem"), path.Join(cryptoKeyDir, "agent/privateKeyAgent.pem"))
+		if err != nil {
+			MyLog.Fatalf("Error loading certificate and key file: %v", err)
+			return nil
+		}
+
+		// Configure the client to trust TLS server certs issued by a CA.
+		certPool, err := x509.SystemCertPool()
+		if err != nil {
+			MyLog.Fatal(err)
+		}
+		if caCertPEM, err := os.ReadFile(path.Join(cryptoKeyDir, "root/certRoot.pem")); err != nil {
+			MyLog.Fatal(err)
+		} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
+			MyLog.Fatal("invalid cert in CA PEM")
+		}
+		tlsConfig := &tls.Config{
+			RootCAs:      certPool,
+			Certificates: []tls.Certificate{clientTLSCert},
+		}
+
+		tr := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+		client = &http.Client{Transport: tr}
+	} else {
+		client = &http.Client{}
+	}
+	return &Agent{client: client, ruler: interactionRules, cancel: cancel}
 }

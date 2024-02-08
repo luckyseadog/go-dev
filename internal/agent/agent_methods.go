@@ -9,7 +9,11 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"runtime"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -29,13 +33,14 @@ import (
 // The method respects rate limiting to control the frequency of metric collection.
 //
 // The method continues running until the agent's cancel signal is received.
-func (a *Agent) GetStats() {
+func (a *Agent) GetStats(wg *sync.WaitGroup) {
 	ticker := time.NewTicker(a.ruler.pollInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-a.cancel:
+			wg.Done()
 			return
 		case <-ticker.C:
 			<-a.ruler.rateLimitChan
@@ -56,13 +61,14 @@ func (a *Agent) GetStats() {
 // CPU utilization statistics using cpu.Percent function.
 //
 // The method continues running until the agent's cancel signal is received.
-func (a *Agent) GetExtendedStats() {
+func (a *Agent) GetExtendedStats(wg *sync.WaitGroup) {
 	ticker := time.NewTicker(a.ruler.pollInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-a.cancel:
+			wg.Done()
 			return
 		case <-ticker.C:
 			<-a.ruler.rateLimitChan
@@ -99,13 +105,14 @@ func (a *Agent) GetExtendedStats() {
 // The method calculates and attaches a hash to each metric for data integrity verification.
 //
 // The method continues running until the agent's cancel signal is received.
-func (a *Agent) PostStats() {
+func (a *Agent) PostStats(wg *sync.WaitGroup) {
 	ticker := time.NewTicker(a.ruler.reportInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-a.cancel:
+			wg.Done()
 			return
 		case <-ticker.C:
 			a.mu.Lock()
@@ -189,10 +196,24 @@ func (a *Agent) PostStats() {
 //
 // It could be used simultaneously with Stop command.
 func (a *Agent) Run() {
-	go a.GetStats()
-	go a.GetExtendedStats()
-	go a.PostStats()
-	<-a.cancel
+	var wg sync.WaitGroup
+	wg.Add(1)
+	wg.Add(1)
+	wg.Add(1)
+
+
+	go a.GetStats(&wg)
+	go a.GetExtendedStats(&wg)
+	go a.PostStats(&wg)
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func(stop chan os.Signal) {
+		<-stop
+		a.Stop()
+	}(stop)
+
+	wg.Wait()
 }
 
 // Stop sends signal to Agent to stop collecting metrics.

@@ -3,12 +3,15 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"path"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -173,10 +176,38 @@ func main() {
 	})
 
 	fmt.Println(envVariables.Address)
-	// Create a new server instance with the provided address and router.
-	srv := server.NewServer(envVariables.Address, r)
-	defer srv.Close()
 
-	// Start the server's operation.
-	srv.Run()
+	// Create a new server instance with the provided address and router.
+	var srv *server.Server
+	if envVariables.CryptoKeyDir != "" {
+		serverTLSCert, err := tls.LoadX509KeyPair(
+			path.Join(envVariables.CryptoKeyDir, "server/certServer.pem"),
+			path.Join(envVariables.CryptoKeyDir, "server/privateKeyServer.pem"),
+		)
+
+		if err != nil {
+			server.MyLog.Fatalf("Error loading certificate and key file: %v", err)
+		}
+
+		// Configure the server to trust TLS client cert issued by your CA.
+		certPool := x509.NewCertPool()
+		if caCertPEM, err := os.ReadFile(path.Join(envVariables.CryptoKeyDir, "root/certRoot.pem")); err != nil {
+			server.MyLog.Fatal(err)
+		} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
+			server.MyLog.Fatal("invalid cert in CA PEM")
+		}
+		tlsConfig := &tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    certPool,
+			Certificates: []tls.Certificate{serverTLSCert},
+		}
+
+		srv = server.NewServerTLS(envVariables.Address, r, tlsConfig)
+		// defer srv.Close()
+		srv.RunTLS()
+	} else {
+		srv = server.NewServer(envVariables.Address, r)
+		// defer srv.Close()
+		srv.Run()
+	}
 }

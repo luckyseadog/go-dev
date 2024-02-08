@@ -1,0 +1,8 @@
+{
+    "address": "127.0.0.1:8080",
+    "poll_interval": "2s",
+    "report_interval": "10s",
+    "secret_key": "",
+    "rate_limit": "10",
+    "crypto_key": ""
+}
