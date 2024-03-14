@@ -1,11 +1,11 @@
 package server
 
 import (
-	"fmt"
 	"context"
 	"crypto/hmac"
 	"crypto/tls"
 	"encoding/hex"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"

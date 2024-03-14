@@ -21,7 +21,6 @@ import (
 	"github.com/luckyseadog/go-dev/internal/middlewares"
 	"github.com/luckyseadog/go-dev/internal/server"
 	"github.com/luckyseadog/go-dev/internal/storage"
-
 	pb "github.com/luckyseadog/go-dev/protobuf"
 )
 
@@ -94,7 +93,6 @@ func main() {
 		s = storage.NewStorage(storageChan, envVariables.StoreInterval)
 
 		// Start a goroutine that saves metrics from MyStorage to file.
-		fmt.Println("HERE")
 		server.PassSignal(cancel, storageChan, envVariables, s)
 
 		// If previous metrics should be restored from a file, the program will use LoadFromFile function.

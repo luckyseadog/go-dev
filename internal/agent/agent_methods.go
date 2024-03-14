@@ -198,9 +198,7 @@ func (a *Agent) PostStats(wg *sync.WaitGroup) {
 // It could be used simultaneously with Stop command.
 func (a *Agent) Run() {
 	var wg sync.WaitGroup
-	wg.Add(1)
-	wg.Add(1)
-	wg.Add(1)
+	wg.Add(3)
 
 	go a.GetStats(&wg)
 	go a.GetExtendedStats(&wg)

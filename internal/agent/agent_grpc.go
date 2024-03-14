@@ -3,6 +3,7 @@ package agent
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"os"
 	"path"
 	"sync"
@@ -23,7 +24,7 @@ type AgentGRPC struct {
 	cancel  chan struct{}
 }
 
-func NewAgentGRPC(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int, cryptoKeyDir string) *AgentGRPC {
+func NewAgentGRPC(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int, cryptoKeyDir string) (*AgentGRPC, error) {
 	rateLimitChan := make(chan struct{}, rateLimit)
 	for i := 0; i < rateLimit; i++ {
 		rateLimitChan <- struct{}{}
@@ -41,19 +42,18 @@ func NewAgentGRPC(address string, contentType string, pollInterval time.Duration
 	if cryptoKeyDir != "" {
 		clientTLSCert, err := tls.LoadX509KeyPair(path.Join(cryptoKeyDir, "agent/certAgent.pem"), path.Join(cryptoKeyDir, "agent/privateKeyAgent.pem"))
 		if err != nil {
-			MyLog.Fatalf("Error loading certificate and key file: %v", err)
-			return nil
+			return nil, err
 		}
 
 		// Configure the client to trust TLS server certs issued by a CA.
 		certPool, err := x509.SystemCertPool()
 		if err != nil {
-			MyLog.Fatal(err)
+			return nil, err
 		}
 		if caCertPEM, err := os.ReadFile(path.Join(cryptoKeyDir, "root/certRoot.pem")); err != nil {
-			MyLog.Fatal(err)
+			return nil, err
 		} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
-			MyLog.Fatal("invalid cert in CA PEM")
+			return nil, errors.New("invalid cert in CA PEM")
 		}
 		tlsConfig := &tls.Config{
 			RootCAs:      certPool,
@@ -65,17 +65,17 @@ func NewAgentGRPC(address string, contentType string, pollInterval time.Duration
 			grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 		)
 		if err != nil {
-			MyLog.Fatal(err)
+			return nil, err
 		}
-		return &AgentGRPC{client: pb.NewMetricsCollectClient(c), ruler: interactionRules, cancel: cancel}
+		return &AgentGRPC{client: pb.NewMetricsCollectClient(c), ruler: interactionRules, cancel: cancel}, nil
 	} else {
 		c, err := grpc.Dial(
 			address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
 		if err != nil {
-			MyLog.Fatal(err)
+			return nil, err
 		}
-		return &AgentGRPC{client: pb.NewMetricsCollectClient(c), ruler: interactionRules, cancel: cancel}
+		return &AgentGRPC{client: pb.NewMetricsCollectClient(c), ruler: interactionRules, cancel: cancel}, nil
 	}
 }

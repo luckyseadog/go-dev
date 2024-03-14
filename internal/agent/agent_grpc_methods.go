@@ -191,9 +191,7 @@ func (a *AgentGRPC) PostStats(wg *sync.WaitGroup) {
 
 func (a *AgentGRPC) Run() {
 	var wg sync.WaitGroup
-	wg.Add(1)
-	wg.Add(1)
-	wg.Add(1)
+	wg.Add(3)
 
 	go a.GetStats(&wg)
 	go a.GetExtendedStats(&wg)

@@ -208,14 +208,16 @@ func main() {
 		}
 	}
 
-	var agt agent.AgentInterface
 	if gRPC {
 		address := os.Getenv("ADDRESS")
 		if address == "" {
 			address = addressFlag
 		}
 
-		agt = agent.NewAgentGRPC(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
+		agt, err := agent.NewAgentGRPC(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
+		if err != nil {
+			agent.MyLog.Fatal(err)
+		}
 		agt.Run()
 	} else {
 		// Retrieve the server address from the environment variable "ADDRESS".
@@ -240,7 +242,10 @@ func main() {
 		// It uses the specified content type for requests, pollInterval for metric collection,
 		// reportInterval for sending metrics, secretKey for digital signature,
 		// and rateLimit for controlling the number of concurrent requests.
-		agt = agent.NewAgent(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
+		agt, err := agent.NewAgent(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
+		if err != nil {
+			agent.MyLog.Fatal(err)
+		}
 
 		// Start the agent's operation. It begins collecting and reporting metrics based on the configured intervals.
 		agt.Run()

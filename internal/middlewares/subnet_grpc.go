@@ -38,37 +38,3 @@ func SubnetInterceptor(trustedSubnet string) func(ctx context.Context, req any,
 		}
 	}
 }
-
-// type Invoker func(ctx context.Context, method string, req interface{},
-//     reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker,
-//     opts ...grpc.CallOption) error
-
-// func SubnetInterceptor(trustedSubnet string) Invoker {
-// 	return func(ctx context.Context, method string, req interface{},
-// 		reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker,
-// 		opts ...grpc.CallOption) error {
-// 			if trustedSubnet == "" {
-// 				err := invoker(ctx, method, req, reply, cc, opts...)
-// 				return err
-// 			} else {
-// 				_, ipNet, err := net.ParseCIDR(trustedSubnet)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				md, ok := metadata.FromIncomingContext(ctx)
-// 				if ok {
-// 					values := md.Get("X-Real-IP")
-// 					IP := values[0]
-// 					if !ipNet.Contains(net.ParseIP(IP)) {
-// 						return errors.New("error with SubnetInterceptor")
-// 					}
-// 					err := invoker(ctx, method, req, reply, cc, opts...)
-// 					return err
-
-// 				} else {
-// 					return errors.New("error with SubnetInterceptor")
-// 				}
-// 			}
-// 		}
-// }

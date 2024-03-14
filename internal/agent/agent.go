@@ -5,6 +5,7 @@ package agent
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -76,7 +77,7 @@ type Agent struct {
 //
 // Returns:
 //   - A pointer to a newly created and initialized Agent instance.
-func NewAgent(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int, cryptoKeyDir string) *Agent {
+func NewAgent(address string, contentType string, pollInterval time.Duration, reportInterval time.Duration, secretKey []byte, rateLimit int, cryptoKeyDir string) (*Agent, error) {
 	rateLimitChan := make(chan struct{}, rateLimit)
 	for i := 0; i < rateLimit; i++ {
 		rateLimitChan <- struct{}{}
@@ -95,19 +96,18 @@ func NewAgent(address string, contentType string, pollInterval time.Duration, re
 	if cryptoKeyDir != "" {
 		clientTLSCert, err := tls.LoadX509KeyPair(path.Join(cryptoKeyDir, "agent/certAgent.pem"), path.Join(cryptoKeyDir, "agent/privateKeyAgent.pem"))
 		if err != nil {
-			MyLog.Fatalf("Error loading certificate and key file: %v", err)
-			return nil
+			return nil, err
 		}
 
 		// Configure the client to trust TLS server certs issued by a CA.
 		certPool, err := x509.SystemCertPool()
 		if err != nil {
-			MyLog.Fatal(err)
+			return nil, err
 		}
 		if caCertPEM, err := os.ReadFile(path.Join(cryptoKeyDir, "root/certRoot.pem")); err != nil {
-			MyLog.Fatal(err)
+			return nil, err
 		} else if ok := certPool.AppendCertsFromPEM(caCertPEM); !ok {
-			MyLog.Fatal("invalid cert in CA PEM")
+			return nil, errors.New("invalid cert in CA PEM")
 		}
 		tlsConfig := &tls.Config{
 			RootCAs:      certPool,
@@ -121,5 +121,5 @@ func NewAgent(address string, contentType string, pollInterval time.Duration, re
 	} else {
 		client = &http.Client{}
 	}
-	return &Agent{client: client, ruler: interactionRules, cancel: cancel}
+	return &Agent{client: client, ruler: interactionRules, cancel: cancel}, nil
 }
