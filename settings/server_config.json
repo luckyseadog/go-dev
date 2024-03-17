@@ -5,5 +5,7 @@
     "restore": "true", 
     "secret_key": "",
     "database_dsn": "", 
-    "crypto_key": ""
+    "crypto_key": "",
+    "trusted_subnet": "",
+    "grpc": "false"
 }

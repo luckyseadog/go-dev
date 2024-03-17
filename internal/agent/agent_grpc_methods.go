@@ -1,14 +1,9 @@
 package agent
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand"
-	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
@@ -21,6 +16,9 @@ import (
 
 	"github.com/luckyseadog/go-dev/internal/metrics"
 	"github.com/luckyseadog/go-dev/internal/security"
+	"google.golang.org/grpc/metadata"
+
+	pb "github.com/luckyseadog/go-dev/protobuf"
 )
 
 // GetStats retrieves metrics into metrics filed of struct Agent
@@ -33,7 +31,7 @@ import (
 // The method respects rate limiting to control the frequency of metric collection.
 //
 // The method continues running until the agent's cancel signal is received.
-func (a *Agent) GetStats(wg *sync.WaitGroup) {
+func (a *AgentGRPC) GetStats(wg *sync.WaitGroup) {
 	ticker := time.NewTicker(a.ruler.pollInterval)
 	defer ticker.Stop()
 
@@ -61,7 +59,7 @@ func (a *Agent) GetStats(wg *sync.WaitGroup) {
 // CPU utilization statistics using cpu.Percent function.
 //
 // The method continues running until the agent's cancel signal is received.
-func (a *Agent) GetExtendedStats(wg *sync.WaitGroup) {
+func (a *AgentGRPC) GetExtendedStats(wg *sync.WaitGroup) {
 	ticker := time.NewTicker(a.ruler.pollInterval)
 	defer ticker.Stop()
 
@@ -105,7 +103,7 @@ func (a *Agent) GetExtendedStats(wg *sync.WaitGroup) {
 // The method calculates and attaches a hash to each metric for data integrity verification.
 //
 // The method continues running until the agent's cancel signal is received.
-func (a *Agent) PostStats(wg *sync.WaitGroup) {
+func (a *AgentGRPC) PostStats(wg *sync.WaitGroup) {
 	ticker := time.NewTicker(a.ruler.reportInterval)
 	defer ticker.Stop()
 
@@ -155,35 +153,34 @@ func (a *Agent) PostStats(wg *sync.WaitGroup) {
 				)
 			}
 
-			data, err := json.Marshal(metricsCurrent)
-			if err != nil {
-				MyLog.Println(err)
-				continue
+			var request pb.AddMetricsRequest
+
+			for _, metric := range metricsCurrent {
+				if metric.Delta == nil {
+					request.Metrics = append(request.Metrics, &pb.Metric{
+						Id:    metric.ID,
+						MType: metric.MType,
+						Value: *metric.Value,
+						Hash:  metric.Hash,
+					})
+				}
+
+				if metric.Value == nil {
+					request.Metrics = append(request.Metrics, &pb.Metric{
+						Id:    metric.ID,
+						MType: metric.MType,
+						Delta: *metric.Delta,
+						Hash:  metric.Hash,
+					})
+				}
 			}
 
-			address, err := url.Parse(a.ruler.address)
-			if err != nil {
-				MyLog.Println(err)
-			}
-			address.Path = address.Path + UPDATE
+			md := metadata.New(map[string]string{
+				"X-Real-IP": "127.0.0.1",
+			}) // should insert in config
+			ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-			ctx := context.Background()
-			fmt.Println(string(data))
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, address.String(), bytes.NewBuffer(data))
-			if err != nil {
-				MyLog.Println(err)
-				continue
-			}
-			req.Header.Set("X-Real-IP", "127.0.0.1") // localhost for now
-			req.Header.Set("Content-Type", a.ruler.contentType)
-			req.Header.Add("Accept", "application/json")
-			response, err := a.client.Do(req)
-			if err != nil {
-				MyLog.Println(err)
-				continue
-			}
-			defer response.Body.Close()
-			_, err = io.Copy(io.Discard, response.Body)
+			_, err := a.client.AddMetrics(ctx, &request)
 			if err != nil {
 				MyLog.Println(err)
 				continue
@@ -192,11 +189,7 @@ func (a *Agent) PostStats(wg *sync.WaitGroup) {
 	}
 }
 
-// Run launches goroutines to collect and report metrics.
-// And then waits for cancellation.
-//
-// It could be used simultaneously with Stop command.
-func (a *Agent) Run() {
+func (a *AgentGRPC) Run() {
 	var wg sync.WaitGroup
 	wg.Add(3)
 
@@ -214,7 +207,6 @@ func (a *Agent) Run() {
 	wg.Wait()
 }
 
-// Stop sends signal to Agent to stop collecting metrics.
-func (a *Agent) Stop() {
+func (a *AgentGRPC) Stop() {
 	close(a.cancel)
 }

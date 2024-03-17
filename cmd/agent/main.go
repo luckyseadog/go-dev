@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/luckyseadog/go-dev/internal/agent"
@@ -38,6 +39,7 @@ func main() {
 	var cryptoKeyFlag string
 	var configFlag string
 	var cFlag string
+	var gRPCFlag string
 
 	// Parse command-line flags and set corresponding variables.
 	flag.StringVar(&addressFlag, "a", "127.0.0.1:8080", "address of server")
@@ -49,6 +51,7 @@ func main() {
 	flag.StringVar(&cryptoKeyFlag, "crypto-key", "", "whether to use asymmetric encoding")
 	flag.StringVar(&configFlag, "config", "", "path to config")
 	flag.StringVar(&cFlag, "c", "", "path to config")
+	flag.StringVar(&gRPCFlag, "grpc", "false", "whether to use gRPC")
 
 	// Parse the command-line flags.
 	flag.Parse()
@@ -95,6 +98,10 @@ func main() {
 		cryptoKeyFlag = Config.CryptoKey
 	}
 
+	if gRPCFlag == "" {
+		gRPCFlag = Config.GRPC
+	}
+
 	// Initialize logging if the "logging" flag is set.
 	if logging {
 		// Open or create the "agent.log" file for writing logs.
@@ -118,23 +125,6 @@ func main() {
 
 	// Retrieve configuration values from environment variables and command-line flags.
 	// If corresponding environment variables are set, they take precedence over command-line flags.
-
-	// Retrieve the server address from the environment variable "ADDRESS".
-	// If not set, use the value provided by the command-line flag "-a".
-	address := os.Getenv("ADDRESS")
-	if address == "" {
-		if cryptoKeyDir != "" {
-			address = "https://" + addressFlag
-		} else {
-			address = "http://" + addressFlag
-		}
-	} else {
-		if cryptoKeyDir != "" {
-			address = "https://" + address
-		} else {
-			address = "http://" + address
-		}
-	}
 
 	// Set the content type for the requests to the server.
 	contentType := "application/json"
@@ -201,13 +191,63 @@ func main() {
 		}
 	}
 
-	// Create a new agent instance with the provided configuration parameters.
-	// The agent gathers metrics from the specified address and reports them to the server.
-	// It uses the specified content type for requests, pollInterval for metric collection,
-	// reportInterval for sending metrics, secretKey for digital signature,
-	// and rateLimit for controlling the number of concurrent requests.
-	agent := agent.NewAgent(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
+	var gRPC bool
+	gRPCStr := os.Getenv("GRPC")
+	if gRPCStr == "" {
+		gRPCStr = gRPCFlag
+	}
+	if gRPCStr == "" {
+		gRPC = false
+	} else {
+		if strings.ToLower(gRPCStr) == "true" {
+			gRPC = true
+		} else if strings.ToLower(gRPCStr) == "false" {
+			gRPC = false
+		} else {
+			agent.MyLog.Fatal("error with gRPC flag")
+		}
+	}
 
-	// Start the agent's operation. It begins collecting and reporting metrics based on the configured intervals.
-	agent.Run()
+	if gRPC {
+		address := os.Getenv("ADDRESS")
+		if address == "" {
+			address = addressFlag
+		}
+
+		agt, err := agent.NewAgentGRPC(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
+		if err != nil {
+			agent.MyLog.Fatal(err)
+		}
+		agt.Run()
+	} else {
+		// Retrieve the server address from the environment variable "ADDRESS".
+		// If not set, use the value provided by the command-line flag "-a".
+		address := os.Getenv("ADDRESS")
+		if address == "" {
+			if cryptoKeyDir != "" {
+				address = "https://" + addressFlag
+			} else {
+				address = "http://" + addressFlag
+			}
+		} else {
+			if cryptoKeyDir != "" {
+				address = "https://" + address
+			} else {
+				address = "http://" + address
+			}
+		}
+
+		// Create a new agent instance with the provided configuration parameters.
+		// The agent gathers metrics from the specified address and reports them to the server.
+		// It uses the specified content type for requests, pollInterval for metric collection,
+		// reportInterval for sending metrics, secretKey for digital signature,
+		// and rateLimit for controlling the number of concurrent requests.
+		agt, err := agent.NewAgent(address, contentType, pollInterval, reportInterval, []byte(secretKeyStr), rateLimit, cryptoKeyDir)
+		if err != nil {
+			agent.MyLog.Fatal(err)
+		}
+
+		// Start the agent's operation. It begins collecting and reporting metrics based on the configured intervals.
+		agt.Run()
+	}
 }
